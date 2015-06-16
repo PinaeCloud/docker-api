@@ -3,13 +3,12 @@
 def check_version(fn):
     def wrapper(*argv, **kwgs):
         try:
-            print 'hello'
+            fun_module = fn.__module__
+            fun_name = fn.__name__
             return fn(*argv, **kwgs)
         except Exception, e:
             raise e
     return wrapper
 
-def get_version(session):
-    url = session._url('/version')
-    response = session._result(session._get(url))
-    return response
+def __get_version_ctrl():
+    pass
