@@ -14,3 +14,9 @@ class Image():
 
         return response
     
+    def pull(self):
+        pass
+    
+    def push(self):
+        pass
+    
