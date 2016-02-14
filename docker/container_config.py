@@ -12,8 +12,11 @@ class ContainerConfig():
         self.resource = {}
         self.network = {}
         self.running = {}
+        
+        #默认激活网络
+        self.network['network'] = True
 
-    def get_config(self):
+    def build_config(self):
         
         # 容器配置定义
         self.__set_value('Image', self.container.get('image'))
@@ -30,17 +33,18 @@ class ContainerConfig():
         self.__set_value('HostConfig/CpuShares', self.resource.get('cpulimit'))
         
         # 网络配置定义
-        self.__set_value('NetworkDisabled', not self.network.get('enable'))
+        self.__set_value('NetworkDisabled', (not self.network.get('network')))
         self.__set_value('HostConfig/Dns', self.network.get('dns'))
         self.__set_value('HostConfig/ExtraHosts', self.network.get('hosts'))
         self.__set_value('PublishAllPorts', self.network.get('allports'))
         self.__set_value('HostConfig/PortBindings', self.network.get('ports'))
-        
+            
         ports = self.network.get('ports')
-        exposed_ports = {}
-        for port in ports:
-            exposed_ports[port] = {}
-        self.config['ExposedPorts'] = exposed_ports
+        if ports != None:
+            exposed_ports = {}
+            for port in ports:
+                exposed_ports[port] = {}
+            self.config['ExposedPorts'] = exposed_ports
         
         # 运行配置定义
         self.__set_value('Hostname', self.running.get('hostname'))
@@ -143,9 +147,7 @@ class ContainerConfig():
                          
                     host_port = str(host_port)
                     
-                    host_port_config = {
-                        'HostPort' : host_port
-                    }
+                    host_port_config = {'HostPort' : host_port}
                     if host_ip != None:
                         host_port_config['HostIp'] = host_ip
                             
@@ -181,8 +183,8 @@ class ContainerConfig():
     
     def add_env(self, key, value):
         if str_utils.is_not_empty(key) and str_utils.is_not_empty(value):
-            envs = self.running.get('environment') if self.running.has_key('environment') else {}
-            envs[key] = value
+            envs = self.running.get('environment') if self.running.has_key('environment') else []
+            envs.append(key + '=' + value)
             self.running['environment'] = envs
     
     def set_tty(self, tty = True):

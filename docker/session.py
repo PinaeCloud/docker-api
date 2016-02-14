@@ -12,6 +12,8 @@ except ImportError:
 import json
 import requests
 
+from text import string_utils
+
 import host
 
 RecentlyUsedContainer = urllib3._collections.RecentlyUsedContainer
@@ -52,9 +54,13 @@ class Session(requests.Session):
         return kwargs
 
     def _post(self, url, **kwargs):
+        if 'params' in kwargs:
+            url = self._build_params(url, kwargs.get('params'))
         return self.post(url, **self._set_request_timeout(kwargs))
 
     def _get(self, url, **kwargs):
+        if 'params' in kwargs:
+            url = self._build_params(url, kwargs.get('params'))
         return self.get(url, **self._set_request_timeout(kwargs))
 
     def _delete(self, url, **kwargs):
@@ -74,8 +80,7 @@ class Session(requests.Session):
         content_type = headers.get('content-type')
         
         result['content-type'] = content_type
-        
-        
+
         if content_type == 'application/json':
             result['content'] = response.json()
         elif content_type == 'application/octet-stream' or content_type == 'application/x-tar':
@@ -86,17 +91,29 @@ class Session(requests.Session):
         return result
     
     def _post_json(self, url, data, **kwargs):
-        data2 = {}
+        req_data = {}
         if data is not None:
             for key in data:
                 value = data[key]
                 if value is not None:
-                    data2[key] = value
-
+                    req_data[key] = value
+        
+        if 'params' in kwargs:
+            url = self._build_params(url, kwargs.get('params'))
         if 'headers' not in kwargs:
             kwargs['headers'] = {}
         kwargs['headers']['Content-Type'] = 'application/json'
-        return self._post(url, data=json.dumps(data2), **kwargs)
+        return self.post(url, data=json.dumps(req_data), **kwargs)
+    
+    def _build_params(self, url, params):
+        param = ''
+        for key in params:
+            value = params.get(key)
+            param = param + key + '=' + str(value)
+            
+        if string_utils.is_not_empty(param):
+            url = url + '?' + param
+        return url
     
 class UnixHTTPConnection(httplib.HTTPConnection, object):
     def __init__(self, base_url, unix_socket, timeout = 60):
