@@ -10,8 +10,8 @@ class Container():
  
     def list(self, show_all=False, show_size=False, status=None, labels=None, exit_code=None):
         params = {}
-        params['all'] = show_all
-        params['size'] = show_size
+        params['all'] = True if show_all == True else False
+        params['size'] = True if show_size == True else False
         
         filters = {}
         if status != None:
@@ -76,8 +76,8 @@ class Container():
 
     def remove(self, container_id, volumes=False, force=False):
         params = {}
-        params['v'] = volumes
-        params['force'] = force
+        params['v'] = True if volumes == True else False
+        params['force'] = True if force == True else False
         
         url = self.session._url('/containers/{0}'.format(container_id))
         response = self.session._result(self.session._delete(url, params=params))
@@ -89,24 +89,27 @@ class Container():
         return response
     
     def stop(self, container_id, wait=None):
+        params = {}
         if wait:
-            params = {'t' : wait}
+            params['t'] = wait
             
         url = self.session._url('/containers/{0}/stop'.format(container_id))
         response = self.session._result(self.session._post(url, params=params))
         return response
 
     def restart(self, container_id, wait=None):
+        params = {}
         if wait:
-            params = {'t' : wait}
+            params['t'] = wait
             
-        url = self.session._url('/containers/{0}/stop'.format(container_id))
+        url = self.session._url('/containers/{0}/restart'.format(container_id))
         response = self.session._result(self.session._post(url, params=params))
         return response
     
     def kill(self, container_id, signal=None):
+        params = {}
         if signal:
-            params = {'signal' : signal}
+            params['signal'] = signal
             
         url = self.session._url('/containers/{0}/kill'.format(container_id))
         response = self.session._result(self.session._post(url, params=params))
