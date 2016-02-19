@@ -56,8 +56,43 @@ class Container():
         response = self.session._result(self.session._get(url, params={}))
         return response
     
+    def logs(self, container_id, stdout=True, stderr=True, stream=False,
+             timestamps=False, tail='all', since=None):
+        params = {'stderr': stderr and 1 or 0,
+                  'stdout': stdout and 1 or 0,
+                  'timestamps': timestamps and 1 or 0,
+                  'follow': stream and 1 or 0,
+                  'tail': tail,
+                  'since': since
+                }
+        url = self.session._url('/containers/{0}/logs'.format(container_id))
+        response = self.session._result(self.session._get(url, params=params, stream=stream), stream)
+        if stream == False and response.get('status_code') == 200:
+            content = response.get('content')
+            log_list = [log.strip() for log in content.split('\n')]
+            response['content'] = log_list
+        return response
+    
+    def logs_stream(self, container_id, stdout=True, stderr=True, timestamps=False, since=None):
+        response = self.logs(container_id, stdout, stderr, True, timestamps, 'all', since)
+        
+        log = ''
+        for chunk in response:
+            log = log + chunk
+            if chunk == '\n':
+                log = log.strip()
+                yield log
+                log = ''
+                
+    def logs_local(self, container_id, stdout=True, stderr=True, timestamps=False, tail='all', since=None):
+        container = self.get_config(container_id)
+        if container.get('status_code') == 200:
+            container_id = container['content']['Id']
+            logs = self.session._read('/containers/{0}/{0}-json.log'.format(container_id))
+            for log in logs:
+                pass
+    
     def create(self, name, container_cfg):
-        # check container name
         params = {}
         if str_utils.is_not_empty(name):
             params['name'] = name

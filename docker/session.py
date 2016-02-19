@@ -13,19 +13,23 @@ import json
 import requests
 
 from text import string_utils
+from text import text_file
 
 import host
 
 RecentlyUsedContainer = urllib3._collections.RecentlyUsedContainer
 
-
-def get_session(base_url):
+def get_session(base_url, base_path=None):
+    if base_path == None:
+        base_path = '/var/lib/docker/'
     return Session(base_url)
 
 class Session(requests.Session):
     def __init__(self, base_url=None):
         super(Session, self).__init__()
-
+        
+        if base_url == None:
+            raise 'URL is None'
         self.base_url = base_url
         self.timeout = 60
         
@@ -36,16 +40,6 @@ class Session(requests.Session):
             self.base_url = 'unix://localhost'
         else:
             self.base_url = base_url
-            
-        #try to connect docker daemon and get version
-        try:
-            response = host.Host(self).get_version()
-            if (response['status_code'] == 200):
-                self.version = response['content']['ApiVersion']
-            else:
-                raise IOError('server {0} error'.format(base_url))
-        except:
-            raise IOError('connect to {0} fail'.format(base_url))
         
     def _set_request_timeout(self, kwargs):
         """Prepare the kwargs for an HTTP request by inserting the timeout
@@ -54,13 +48,9 @@ class Session(requests.Session):
         return kwargs
 
     def _post(self, url, **kwargs):
-        if 'params' in kwargs:
-            url = self._build_params(url, kwargs.get('params'))
         return self.post(url, **self._set_request_timeout(kwargs))
 
     def _get(self, url, **kwargs):
-        if 'params' in kwargs:
-            url = self._build_params(url, kwargs.get('params'))
         return self.get(url, **self._set_request_timeout(kwargs))
 
     def _delete(self, url, **kwargs):
@@ -71,7 +61,7 @@ class Session(requests.Session):
         return url
 
 
-    def _result(self, response):
+    def _result(self, response, stream=False):
         result = {}
         
         result['status_code'] = response.status_code
@@ -81,14 +71,21 @@ class Session(requests.Session):
         
         result['content-type'] = content_type
 
-        if content_type == 'application/json':
-            result['content'] = response.json()
-        elif content_type == 'application/octet-stream' or content_type == 'application/x-tar':
-            result['content'] = response.content
+        if stream:
+            return self._stream_raw_result(response)
         else:
-            result['content'] = response.text
+            if content_type == 'application/json':
+                result['content'] = response.json()
+            elif content_type == 'application/octet-stream' or content_type == 'application/x-tar':
+                result['content'] = response.content
+            else:
+                result['content'] = response.text
             
         return result
+    
+    def _stream_raw_result(self, response):
+        for out in response.iter_content(chunk_size=1, decode_unicode=True):
+            yield out
     
     def _post_json(self, url, data, **kwargs):
         req_data = {}
@@ -98,22 +95,14 @@ class Session(requests.Session):
                 if value is not None:
                     req_data[key] = value
         
-        if 'params' in kwargs:
-            url = self._build_params(url, kwargs.get('params'))
         if 'headers' not in kwargs:
             kwargs['headers'] = {}
         kwargs['headers']['Content-Type'] = 'application/json'
         return self.post(url, data=json.dumps(req_data), **kwargs)
     
-    def _build_params(self, url, params):
-        param = ''
-        for key in params:
-            value = params.get(key)
-            param = param + key + '=' + str(value)
-            
-        if string_utils.is_not_empty(param):
-            url = url + '?' + param
-        return url
+    def _read(self, path, tail=None):
+        result = text_file.read_file(self.base_url + path, tail)
+        return result
     
 class UnixHTTPConnection(httplib.HTTPConnection, object):
     def __init__(self, base_url, unix_socket, timeout = 60):
