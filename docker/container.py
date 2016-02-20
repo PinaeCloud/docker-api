@@ -2,6 +2,7 @@
 
 import types
 
+from docker import container_config
 from text import string_utils as str_utils
 
 class Container():
@@ -28,25 +29,12 @@ class Container():
      
         return response
     
-    def get_container_by_name(self, name):
-        response = self.list(None, True)
-        if response != None and response.get('status_code') == 200:
-            container_list = response.get('content')
-            if container_list != None:
-                for container in container_list:
-                    if 'Names' in container:
-                        container_names = container.get('Names')
-                        for container_name in container_names:
-                            if name in container_name:
-                                return container
-        return None
-    
-    def get_config(self, container_id):
+    def inspect(self, container_id):
         url = self.session._url('/containers/{0}/json'.format(container_id))
         response = self.session._result(self.session._get(url, params={}))
         return response
     
-    def get_status(self, container_id):
+    def status(self, container_id):
         url = self.session._url('/containers/{0}/stats'.format(container_id))
         response = self.session._result(self.session._get(url, params={'stream': False}))
         return response
@@ -90,10 +78,12 @@ class Container():
             container_id = container['content']['Id']
             logs = self.session._read('/containers/{0}/{0}-json.log'.format(container_id))
             for log in logs:
-                pass
+                print log
     
     def create(self, name, container_cfg):
         params = {}
+        if isinstance(container_cfg, container_config.ContainerConfig):
+            container_cfg = container_cfg.build_config()
         if str_utils.is_not_empty(name):
             params['name'] = name
 
