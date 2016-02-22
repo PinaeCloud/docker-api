@@ -12,25 +12,27 @@ except ImportError:
 import json
 import requests
 
-from text import string_utils
 from text import text_file
-
-import host
 
 RecentlyUsedContainer = urllib3._collections.RecentlyUsedContainer
 
 def get_session(base_url, base_path=None):
     if base_path == None:
-        base_path = '/var/lib/docker/'
-    return Session(base_url)
+        base_path = '/var/lib/docker'
+    return Session(base_url, base_path)
 
 class Session(requests.Session):
-    def __init__(self, base_url=None):
+    def __init__(self, base_url=None, base_path=None):
         super(Session, self).__init__()
         
-        if base_url == None:
-            raise 'URL is None'
+        if base_url is None:
+            raise 'Docker URL is None'
         self.base_url = base_url
+        
+        if base_path is None:
+            raise 'Docker Path is None'
+        self.base_path = base_path
+        
         self.timeout = 60
         
         #set docker server url
@@ -77,6 +79,7 @@ class Session(requests.Session):
             if content_type == 'application/json':
                 result['content'] = response.json()
             elif content_type == 'application/octet-stream' or content_type == 'application/x-tar':
+                #TODO 二进制输出
                 result['content'] = response.content
             else:
                 result['content'] = response.text
@@ -101,7 +104,7 @@ class Session(requests.Session):
         return self.post(url, data=json.dumps(req_data), **kwargs)
     
     def _read(self, path, tail=None):
-        result = text_file.read_file(self.base_url + path, tail)
+        result = text_file.read_file(self.base_path + path, tail)
         return result
     
 class UnixHTTPConnection(httplib.HTTPConnection, object):

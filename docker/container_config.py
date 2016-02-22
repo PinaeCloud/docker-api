@@ -174,7 +174,9 @@ class ContainerConfig():
             self.container['entrypoint'] = entrypoints
             
     def set_command(self, command):
-        if str_utils.is_not_empty(command):
+        if command != None and isinstance(command, list):
+            self.container['command'] = command
+        else:  
             self.container['command'] = command.split(' ')
     
     def set_workdir(self, workdir):

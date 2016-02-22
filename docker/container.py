@@ -1,6 +1,8 @@
 # coding=utf-8
 
+import json
 import types
+import time
 
 from docker import container_config
 from text import string_utils as str_utils
@@ -72,13 +74,48 @@ class Container():
                 yield log
                 log = ''
                 
-    def logs_local(self, container_id, stdout=True, stderr=True, timestamps=False, tail='all', since=None):
-        container = self.get_config(container_id)
+    def logs_local(self, container_id, stdout=True, stderr=True, since=None):
+        container = self.inspect(container_id)
         if container.get('status_code') == 200:
             container_id = container['content']['Id']
-            logs = self.session._read('/containers/{0}/{0}-json.log'.format(container_id))
-            for log in logs:
-                print log
+            log_list = self.session._read('/containers/{0}/{0}-json.log'.format(container_id))
+            if log_list != None:
+                result = []
+                for log_str in log_list:
+                    log = json.loads(log_str)
+                    stream = log.get('stream')
+                    
+                    is_match = False
+                    if (stdout == True and stream == 'stdout') or (stderr == True and stream == 'stderr'):
+                        is_match = True
+
+                    if since != None:
+                        if isinstance(since, str):
+                            try:
+                                since = time.strptime(since, '%Y-%m-%d %H:%M:%S')
+                            except:
+                                raise 'since is Not correct time format : yyyy-mm-dd HH:MM:SS'
+                            
+                        if isinstance(since, time.struct_time):
+                            try:
+                                timestamps = log.get('time')
+                                # 日期格式为%Y-%m-%dT%H:%M:%S.%MSZ, 需要将毫秒进行清理
+                                timestamps = timestamps.split('.')[0]
+                                log_time = time.mktime(time.strptime(timestamps, '%Y-%m-%dT%H:%M:%S'))
+                                since_time = time.mktime(since)
+                                is_match =  True if log_time > since_time else False
+                            except:
+                                is_match = False
+                            
+                    if is_match:
+                        result.append(log)
+                        
+                if len(result) > 0:
+                    return result
+        return None
+    
+    def layer(self, container_id):
+        pass
     
     def create(self, name, container_cfg):
         params = {}
