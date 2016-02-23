@@ -115,7 +115,24 @@ class Container():
         return None
     
     def layer(self, container_id):
-        pass
+        layers = []
+        
+        def recurse_layer(mount_ids):
+            if mount_ids != None and len(mount_ids) > 0:
+                for mount_id in mount_ids:
+                    if mount_id not in layers:
+                        layers.append(mount_id)
+                    recurse_layer(self.session._read('/aufs/layers/{0}'.format(mount_id)))
+        
+        container = self.inspect(container_id)
+        if container.get('status_code') == 200:
+            container_id = container['content']['Id']
+            
+            mount_id = self.session._read('/image/aufs/layerdb/mounts/{0}/mount-id'.format(container_id))
+            if mount_id != None:
+                recurse_layer(mount_id)
+                
+            return layers
     
     def create(self, name, container_cfg):
         params = {}

@@ -16,6 +16,7 @@ class ContainerInfoTest(unittest.TestCase):
         
         self.c_session = session.get_session(base_test.session_url)
         self.c = container.Container(self.c_session)
+        
         c_cfg = self.c.status(self.c_name)
         if c_cfg.get('status_code') != 200:
             c_cfg = base_test.get_container()
@@ -26,8 +27,16 @@ class ContainerInfoTest(unittest.TestCase):
                     print 'Stop container FAIL : ' + result.get('status_code')
             else:
                 print 'Create container FAIL : ' + result.get('status_code')
+                
+    def tearDown(self):
+        result = self.c.stop(self.c_name)
+        if result.get('status_code') == 204:
+            result = self.c.remove(self.c_name, volumes = True, force = True)
+            if result.get('status_code') != 204:
+                print 'Remove container FAIL : ' + result.get('status_code')
+        else:
+            print 'Stop container FAIL : ' + result.get('status_code')
         
-      
     def test_list(self):
         c_list = self.c.list(True, True)
         status_code = c_list.get('status_code')
@@ -82,19 +91,14 @@ class ContainerInfoTest(unittest.TestCase):
             self.fail('top : not container {0} or {0} not running, status_code : {1}'.format(self.c_name, status_code))
         if base_test.print_json:
             print 'top:' + json.dumps(c_tops)
-        
-    def tearDown(self):
-        result = self.c.stop(self.c_name)
-        if result.get('status_code') == 204:
-            result = self.c.remove(self.c_name, volumes = True, force = True)
-            if result.get('status_code') != 204:
-                print 'Remove container FAIL : ' + result.get('status_code')
-        else:
-            print 'Stop container FAIL : ' + result.get('status_code')
 
+    def test_layer(self):
+        c_layer = self.c.layer(self.c_name)
+        self.assertEqual(len(c_layer), 7)
+        if base_test.print_json:
+            print 'layer:' + json.dumps(c_layer)
 
 class ContainerLogTest(unittest.TestCase):
-    
     
     def setUp(self):
         self.c_name = base_test.container_name
@@ -112,6 +116,17 @@ class ContainerLogTest(unittest.TestCase):
                     print 'Stop container FAIL : ' + result.get('status_code')
             else:
                 print 'Create container FAIL : ' + result.get('status_code')
+                
+        time.sleep(10)
+                
+    def tearDown(self):
+        result = self.c.stop(self.c_name)
+        if result.get('status_code') == 204:
+            result = self.c.remove(self.c_name, volumes = True, force = True)
+            if result.get('status_code') != 204:
+                print 'Remove container FAIL : ' + result.get('status_code')
+        else:
+            print 'Stop container FAIL : ' + result.get('status_code')
     
     def test_logs(self):
         time.sleep(10)
@@ -125,14 +140,6 @@ class ContainerLogTest(unittest.TestCase):
     def test_logs_local(self):
         print len(self.c.logs_local(self.c_name, True, True, '2016-02-22 00:00:00'))
 
-    
-    def tearDown(self):
-        result = self.c.stop(self.c_name)
-        if result.get('status_code') == 204:
-            result = self.c.remove(self.c_name, volumes = True, force = True)
-            if result.get('status_code') != 204:
-                print 'Remove container FAIL : ' + result.get('status_code')
-        else:
-            print 'Stop container FAIL : ' + result.get('status_code')
+
 
         
