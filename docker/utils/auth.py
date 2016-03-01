@@ -19,7 +19,7 @@ import os
 
 import six
 
-INDEX_NAME = 'docker.io'
+INDEX_NAME = 'index.docker.io'
 INDEX_URL = 'https://{0}/v1/'.format(INDEX_NAME)
 DOCKER_CONFIG_FILENAME = os.path.join('.docker', 'config.json')
 LEGACY_DOCKER_CONFIG_FILENAME = '.dockercfg'
