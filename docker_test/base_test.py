@@ -2,6 +2,7 @@
 
 from docker import container_config
 
+print_text = True
 print_json = True
 session_url = 'http://192.168.228.129:2375'
 container_name = 'test-container'

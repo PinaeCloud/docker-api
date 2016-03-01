@@ -77,7 +77,11 @@ class Session(requests.Session):
             return self._stream_raw_result(response)
         else:
             if content_type == 'application/json':
-                result['content'] = response.json()
+                try:
+                    result['content'] = response.json()
+                except ValueError:
+                    result['content-type'] = 'text/plain'
+                    result['content'] = response.text
             elif content_type == 'application/octet-stream' or content_type == 'application/x-tar':
                 #TODO 二进制输出
                 result['content'] = response.content

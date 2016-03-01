@@ -5,6 +5,7 @@ import json
 from docker import session
 from docker import image
 
+from docker.utils import auth
 from docker_test import base_test
 
 class ImageInfoTest(unittest.TestCase):
@@ -67,4 +68,16 @@ class ImageInfoTest(unittest.TestCase):
                                                                                  status_code))
         if base_test.print_json:
             print 'search:' + json.dumps(response)
+            
+    def test_pull(self):
+        self.i.remove('busybox:latest', True)
+        response = self.i.pull('busybox', 'latest')
+        status_code = response.get('status_code')
+        if status_code == 200:
+            resp_info = self.i.inspect('busybox', 'latest')
+            self.assertEqual(resp_info.get('status_code'), 200)
+            image_info = resp_info.get('content')
+            self.assertEqual(image_info.get('RepoTags')[0], '{0}:{1}'.format('busybox', 'latest'))
+        else:
+            self.fail('Fail pull image : busybox:latest')
         
