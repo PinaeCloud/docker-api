@@ -22,7 +22,7 @@ class Image():
     
     def inspect(self, image_name, version = None):
         if str_utils.is_empty(image_name):
-            raise 'Image name is Empty'
+            raise IOError('Image name is Empty')
         if version != None:
             image_name = image_name + ':' + version
         url = self.session._url('/images/{0}/json'.format(image_name))
@@ -31,7 +31,7 @@ class Image():
     
     def history(self, image_name, version = None):
         if str_utils.is_empty(image_name):
-            raise 'Image name is Empty'
+            raise IOError('Image name is Empty')
         if version != None:
             image_name = image_name + ':' + version
         url = self.session._url('/images/{0}/history'.format(image_name))
@@ -40,7 +40,7 @@ class Image():
     
     def search(self, image_name):
         if str_utils.is_empty(image_name):
-            raise 'Image name is Empty'
+            raise IOError('Image name is Empty')
         params = {}
         params['term'] = image_name
         url = self.session._url('/images/search')
@@ -55,7 +55,7 @@ class Image():
     
     def create_by_file(self, filename, repository = None, tag = None):
         if str_utils.is_empty(filename):
-            raise 'Filename is Empty'
+            raise IOError('Filename is Empty')
         
         params = {'fromSrc' : '-', 'repo' : repository, 'tag' : tag}
         headers = {'Content-Type': 'application/tar'}
@@ -70,7 +70,7 @@ class Image():
     
     def create_by_url(self, url, repository = None, tag = None):
         if str_utils.is_empty(url):
-            raise 'URL is Empty'
+            raise IOError('URL is Empty')
         
         params = {'fromSrc' : url, 'repo' : repository, 'tag' : tag}
         
@@ -80,7 +80,7 @@ class Image():
     
     def create_by_image(self, image_name, repository = None, tag = None):
         if str_utils.is_empty(image_name):
-            raise 'Image name is Empty'
+            raise IOError('Image name is Empty')
         
         params = {'fromImage' : image_name, 'repo' : repository, 'tag' : tag}
         
@@ -94,11 +94,11 @@ class Image():
         response = self.session._result(self.session._delete(url, params = params))
         return response
     
-    def pull(self, repository, tag, auth_config = None):
+    def pull(self, repository, tag, stream = False, auth_config = None):
         if str_utils.is_empty(repository):
-            raise 'Repository name is Empty'
+            raise IOError('Repository name is Empty')
         if str_utils.is_empty(tag):
-            raise 'Repository tag is Empty'
+            raise IOError('Repository tag is Empty')
          
         registry, _ = auth.resolve_repository_name(repository)
         params = {'tag': tag, 'fromImage': repository}
@@ -107,12 +107,30 @@ class Image():
         self.__set_auth_to_header(headers, registry, auth_config)
 
         url = self.session._url('/images/create')
-        response = self.session._post(url, params=params, headers=headers, timeout = None)
+        response = self.session._post(url, params = params, stream = stream, headers = headers, timeout = None)
+        
+        if stream:
+            return self.session._stream_helper(response)
 
         return self.session._result(response)
     
-    def push(self):
-        pass
+    def push(self, repository, tag = None, stream = False, auth_config = None):
+        if str_utils.is_empty(repository):
+            raise IOError('Repository name is Empty')
+        
+        registry, _ = auth.resolve_repository_name(repository)
+        params = {'tag': tag}
+        
+        headers = {}
+        self.__set_auth_to_header(headers, registry, auth_config)
+        
+        url = self.session._url("/images/{0}/push", repository)
+        response = self._post_json(url, None, headers = headers, stream = stream, params = params)
+        
+        if stream:
+            return self.session._stream_helper(response)
+
+        return self.session._result(response)
     
     def __set_auth_to_header(self, headers, registry, auth_config = None):
         

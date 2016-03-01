@@ -73,13 +73,20 @@ class ImageInfoTest(unittest.TestCase):
             
     def test_pull(self):
         self.i.remove('busybox:latest', True)
-        response = self.i.pull('busybox', 'latest')
-        status_code = response.get('status_code')
-        if status_code == 200:
-            resp_info = self.i.inspect('busybox', 'latest')
-            self.assertEqual(resp_info.get('status_code'), 200)
-            image_info = resp_info.get('content')
-            self.assertEqual(image_info.get('RepoTags')[0], '{0}:{1}'.format('busybox', 'latest'))
-        else:
-            self.fail('pull: pull image fail: busybox:latest, status_code : ' + status_code)
+        stream = self.i.pull('busybox', 'latest', stream = True)
+        
+        if base_test.print_json:
+            print '----------pulling busybox:latest-------------'
+        for msg in stream:
+            if msg is not None:
+                if base_test.print_json:
+                    print msg.strip()
+        if base_test.print_json:
+            print '--------pull busybox:latest finish-----------'
+            
+        resp_info = self.i.inspect('busybox', 'latest')
+        self.assertEqual(resp_info.get('status_code'), 200)
+        image_info = resp_info.get('content')
+        self.assertEqual(image_info.get('RepoTags')[0], '{0}:{1}'.format('busybox', 'latest'))
+        
         
