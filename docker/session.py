@@ -91,8 +91,27 @@ class Session(requests.Session):
         return result
     
     def _stream_raw_result(self, response):
-        for out in response.iter_content(chunk_size=1, decode_unicode=True):
+        for out in response.iter_content(chunk_size = 1, decode_unicode = True):
             yield out
+            
+    def _stream_helper(self, response, decode = False):
+        """Generator for data coming from a chunked-encoded HTTP response."""
+        if response.raw._fp.chunked:
+            reader = response.raw
+            while not reader.closed:
+                # this read call will block until we get a chunk
+                data = reader.read(1)
+                if not data:
+                    break
+                if reader._fp.chunk_left:
+                    data += reader.read(reader._fp.chunk_left)
+                if decode:
+                    data = json.loads(data)
+                yield data
+        else:
+            # Response isn't chunked, meaning we probably
+            # encountered an error immediately
+            yield self._result(response)
     
     def _post_json(self, url, data, **kwargs):
         req_data = {}
