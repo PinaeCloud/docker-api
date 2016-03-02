@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import logging
+import types
 
 from text import string_utils as str_utils
 from docker.utils import auth
@@ -11,10 +12,19 @@ class Image():
     def __init__(self, session):
         self.session = session
         
-    def list(self, show_all = False, filters = None):
+    def list(self, show_all = False, dangling = False, labels = None):
         params = {}
-        params['all'] = 1 if all == True else 0
-
+        params['all'] = 1 if show_all is True else 0
+        
+        filters = {}
+        filters['dangling'] = 1 if dangling is True else 0
+        if labels is not None:
+            if type(labels) == types.DictionaryType:
+                filters['label'] = labels
+            else:
+                raise TypeError('container label must be a dict')
+        params['filters'] = filters
+        
         url = self.session._url("/images/json")
         response = self.session._result(self.session._get(url, params = params))
 
@@ -25,6 +35,7 @@ class Image():
             raise IOError('Image name is Empty')
         if version != None:
             image_name = image_name + ':' + version
+            
         url = self.session._url('/images/{0}/json'.format(image_name))
         response = self.session._result(self.session._get(url, params={}))
         return response
@@ -34,6 +45,7 @@ class Image():
             raise IOError('Image name is Empty')
         if version != None:
             image_name = image_name + ':' + version
+            
         url = self.session._url('/images/{0}/history'.format(image_name))
         response = self.session._result(self.session._get(url, params={}))
         return response
@@ -43,12 +55,14 @@ class Image():
             raise IOError('Image name is Empty')
         params = {}
         params['term'] = image_name
+        
         url = self.session._url('/images/search')
         response = self.session._result(self.session._get(url, params=params))
         return response
     
-    def tag(self, image_name, repository, tag=None, force=False):
+    def tag(self, image_name, repository, tag = None, force = False):
         params = {'tag': tag, 'repo': repository, 'force': 1 if force else 0 }
+        
         url = self.session._url('/images/{0}/tag'.format(image_name))
         response = self.session._result(self.session._post(url, params = params))
         return response
@@ -90,6 +104,7 @@ class Image():
     
     def remove(self, image_name, force = False, noprune = False):
         params = {'force': force, 'noprune': noprune}
+        
         url = self.session._url('/images/{0}'.format(image_name))
         response = self.session._result(self.session._delete(url, params = params))
         return response
