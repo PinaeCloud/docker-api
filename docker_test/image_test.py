@@ -19,17 +19,29 @@ class ImageInfoTest(unittest.TestCase):
         if status_code == 200:
             image_list = response.get('content')
             self.assertGreater(len(image_list), 0)
-            for image in image_list:
-                if image.get('RepoTags')[0] == 'ubuntu:14.04':
-                    print 'list: find ubuntu:14.04'
-                elif image.get('RepoTags')[0] == 'interhui/openssh:latest':
-                    print 'list: find interhui/openssh:latest'
         else:
-            self.fail('list: list images fail, status_code : ' + status_code)
-            
+            self.fail('list: list images fail, status_code : ' + str(status_code))
         if base_test.print_json:
             print 'list:' + json.dumps(response)
-        
+            
+        response = self.i.list('ubuntu:14.04')
+        if status_code == 200:
+            image_list = response.get('content')
+            self.assertEquals(len(image_list), 1)
+        else:
+            self.fail('list: list images fail, status_code : ' + str(status_code))
+        if base_test.print_json:
+            print 'list ubuntu14.04:' + json.dumps(response)
+            
+        response = self.i.list('openssh')
+        if status_code == 200:
+            image_list = response.get('content')
+            self.assertEquals(len(image_list), 1)
+        else:
+            self.fail('list: list images fail, status_code : ' + str(status_code))
+        if base_test.print_json:
+            print 'list openssh:' + json.dumps(response)
+
     def test_inspect(self):
         response = self.i.inspect(base_test.image_name, base_test.image_version)
         status_code = response.get('status_code')
@@ -42,7 +54,7 @@ class ImageInfoTest(unittest.TestCase):
         else:
             self.fail('inspect : get image {0}:{1} fail, status_code : {2}'.format(base_test.image_name, 
                                                                                    base_test.image_version, 
-                                                                                   status_code))
+                                                                                   str(status_code)))
         if base_test.print_json:
             print 'inspect:' + json.dumps(response)
             
@@ -55,7 +67,7 @@ class ImageInfoTest(unittest.TestCase):
         else:
             self.fail('history : get image {0}:{1} history fail, status_code : {2}'.format(base_test.image_name, 
                                                                                            base_test.image_version, 
-                                                                                           status_code))
+                                                                                           str(status_code)))
         if base_test.print_json:
             print 'history:' + json.dumps(response)
             
@@ -67,7 +79,7 @@ class ImageInfoTest(unittest.TestCase):
             self.assertEqual(len(image_list), 2)
         else:
             self.fail('search : search image {0} fail, status_code : {1}'.format('interhui/mysql', 
-                                                                                 status_code))
+                                                                                 str(status_code)))
         if base_test.print_json:
             print 'search:' + json.dumps(response)
             

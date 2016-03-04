@@ -12,27 +12,39 @@ class Image():
     def __init__(self, session):
         self.session = session
         
-    def list(self, show_all = False, dangling = False, labels = None):
+    def list(self, image_name = None, show_all = False, labels = None):
         params = {}
         params['all'] = 1 if show_all is True else 0
         
         filters = {}
-        filters['dangling'] = 1 if dangling is True else 0
         if labels is not None:
             if type(labels) == types.DictionaryType:
                 filters['label'] = labels
             else:
                 raise TypeError('container label must be a dict')
-        params['filters'] = filters
+        if len(filters) > 0:
+            params['filters'] = filters
         
         url = self.session._url("/images/json")
         response = self.session._result(self.session._get(url, params = params))
+        
+        if response.get('status_code') == 200 and image_name is not None:
+            image_list = [] 
+            content = response.get('content')
+            for image in content:
+                tags = image.get('RepoTags')
+                for tag in tags:
+                    if image_name in tag:
+                        image_list.append(image)
+                        break
+            response['content'] = image_list
 
         return response
     
     def inspect(self, image_name, version = None):
         if str_utils.is_empty(image_name):
             raise IOError('Image name is Empty')
+        
         if version != None:
             image_name = image_name + ':' + version
             
@@ -43,6 +55,7 @@ class Image():
     def history(self, image_name, version = None):
         if str_utils.is_empty(image_name):
             raise IOError('Image name is Empty')
+        
         if version != None:
             image_name = image_name + ':' + version
             
@@ -53,6 +66,7 @@ class Image():
     def search(self, image_name):
         if str_utils.is_empty(image_name):
             raise IOError('Image name is Empty')
+        
         params = {}
         params['term'] = image_name
         
@@ -61,6 +75,9 @@ class Image():
         return response
     
     def tag(self, image_name, repository, tag = None, force = False):
+        if str_utils.is_empty(image_name):
+            raise IOError('Image name is Empty')
+        
         params = {'tag': tag, 'repo': repository, 'force': 1 if force else 0 }
         
         url = self.session._url('/images/{0}/tag'.format(image_name))
@@ -103,6 +120,9 @@ class Image():
         return response
     
     def remove(self, image_name, force = False, noprune = False):
+        if str_utils.is_empty(image_name):
+            raise IOError('Image name is Empty')
+        
         params = {'force': force, 'noprune': noprune}
         
         url = self.session._url('/images/{0}'.format(image_name))
