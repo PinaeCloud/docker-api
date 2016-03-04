@@ -4,6 +4,7 @@ import json
 import types
 import time
 
+from utils import time_utils
 from docker import container_config
 from text import string_utils as str_utils
 
@@ -11,7 +12,7 @@ class Container():
     def __init__(self, session):
         self.session = session
  
-    def list(self, show_all = False, show_size = False, status = None, labels = None, exit_code = None):
+    def list(self, container_id = None, show_all = False, show_size = False, status = None, labels = None, exit_code = None):
         params = {}
         params['all'] = True if show_all is True else False
         params['size'] = True if show_size is True else False
@@ -19,10 +20,14 @@ class Container():
         filters = {}
         if status is not None:
             filters['status'] = status
-        if labels is not None and len(labels) > 0 and type(labels) == types.DictionaryType:
-            filters['label'] = labels
+        if labels is not None:
+            if type(labels) == types.DictionaryType:
+                filters['label'] = labels
+            else:
+                raise TypeError('container label must be a dict')
         if exit_code is not None:
             filters['exit_code'] = exit_code
+            
         if len(filters) > 0:
             params['filters'] = filters
             
@@ -90,11 +95,7 @@ class Container():
                         is_match = True
 
                     if since is not None:
-                        if isinstance(since, str):
-                            try:
-                                since = time.strptime(since, '%Y-%m-%d %H:%M:%S')
-                            except:
-                                raise ValueError('since is Not correct time format : yyyy-mm-dd HH:MM:SS')
+                        since = time_utils.parse_time(since)
                             
                         if isinstance(since, time.struct_time):
                             try:
@@ -140,7 +141,6 @@ class Container():
             container_cfg = container_cfg.build_config()
         if str_utils.is_not_empty(name):
             params['name'] = name
-
         url = self.session._url('/containers/create')
         response = self.session._result(self.session._post_json(url, data=container_cfg, params=params))
         return response
@@ -148,7 +148,6 @@ class Container():
     def rename(self, container_id, new_name):
         if new_name:
             params = {'name' : new_name}
-        
         url = self.session._url('/containers/{0}/rename'.format(container_id))
         response = self.session._result(self.session._post(url, params=params))
         return response
@@ -157,7 +156,6 @@ class Container():
         params = {}
         params['v'] = True if volumes is True else False
         params['force'] = True if force is True else False
-        
         url = self.session._url('/containers/{0}'.format(container_id))
         response = self.session._result(self.session._delete(url, params=params))
         return response
@@ -171,7 +169,6 @@ class Container():
         params = {}
         if wait:
             params['t'] = wait
-            
         url = self.session._url('/containers/{0}/stop'.format(container_id))
         response = self.session._result(self.session._post(url, params=params))
         return response
@@ -180,7 +177,6 @@ class Container():
         params = {}
         if wait:
             params['t'] = wait
-            
         url = self.session._url('/containers/{0}/restart'.format(container_id))
         response = self.session._result(self.session._post(url, params=params))
         return response
@@ -189,7 +185,6 @@ class Container():
         params = {}
         if signal:
             params['signal'] = signal
-            
         url = self.session._url('/containers/{0}/kill'.format(container_id))
         response = self.session._result(self.session._post(url, params=params))
         return response

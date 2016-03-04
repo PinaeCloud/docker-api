@@ -8,7 +8,6 @@ from docker import container
 
 from docker_test import base_test
 
-
 class ContainerInfoTest(unittest.TestCase):
     
     def setUp(self):
@@ -24,18 +23,18 @@ class ContainerInfoTest(unittest.TestCase):
             if result.get('status_code') == 201:
                 result = self.c.start(self.c_name)
                 if result.get('status_code') != 204:
-                    print 'Stop container FAIL : ' + result.get('status_code')
+                    self.fail('Stop container FAIL : ' + str(result.get('status_code')))
             else:
-                print 'Create container FAIL : ' + result.get('status_code')
+                self.fail('Create container FAIL : ' + str(result.get('status_code')))
                 
     def tearDown(self):
         result = self.c.stop(self.c_name)
         if result.get('status_code') == 204:
             result = self.c.remove(self.c_name, volumes = True, force = True)
             if result.get('status_code') != 204:
-                print 'Remove container FAIL : ' + result.get('status_code')
+                self.fail('Remove container FAIL : ' + str(result.get('status_code')))
         else:
-            print 'Stop container FAIL : ' + result.get('status_code')
+            self.fail('Stop container FAIL : ' + str(result.get('status_code')))
         
     def test_list(self):
         c_list = self.c.list(True, True)
@@ -47,7 +46,7 @@ class ContainerInfoTest(unittest.TestCase):
             self.assertEqual(c_cfg.get('Status').startswith('Up'))
             self.assertTrue(c_cfg.get('Image'), 'interhui/openssh:latest')
         else:
-            self.fail('list : not any container, status_code :' + status_code)
+            self.fail('list : not any container, status_code :' + str(status_code))
             
         if base_test.print_json:
             print 'list : ' + json.dumps(c_list)
@@ -61,7 +60,7 @@ class ContainerInfoTest(unittest.TestCase):
             self.assertTrue(content.get('State').get('Pid') > 0)
             self.assertTrue(content.get('Config').get('Image'), 'interhui/openssh:latest')
         else:
-            self.fail('inspect : not container {0}, status_code : {1}'.format(self.c_name, status_code))
+            self.fail('inspect : not container {0}, status_code : {1}'.format(self.c_name, str(status_code)))
             
         if base_test.print_json:
             print 'list : ' + json.dumps(c_inspect)
@@ -75,7 +74,7 @@ class ContainerInfoTest(unittest.TestCase):
             self.assertTrue(content.get('memory_stats').get('usage') > 0)
             self.assertTrue(content.get('cpu_stats').get('cpu_usage').get('total_usage') > 0)
         else:
-            self.fail('status : not container {0} or {0} not running, status_code : {1}'.format(self.c_name, status_code))
+            self.fail('status : not container {0} or {0} not running, status_code : {1}'.format(self.c_name, str(status_code)))
         if base_test.print_json:
             print 'status:' + json.dumps(container)
         
@@ -88,7 +87,7 @@ class ContainerInfoTest(unittest.TestCase):
             self.assertEqual(processes[0], 'root')
             self.assertEqual(processes[7], '/usr/sbin/sshd -D')
         else:
-            self.fail('top : not container {0} or {0} not running, status_code : {1}'.format(self.c_name, status_code))
+            self.fail('top : not container {0} or {0} not running, status_code : {1}'.format(self.c_name, str(status_code)))
         if base_test.print_json:
             print 'top:' + json.dumps(c_tops)
 
@@ -113,9 +112,9 @@ class ContainerLogTest(unittest.TestCase):
             if result.get('status_code') == 201:
                 result = self.c.start(self.c_name)
                 if result.get('status_code') != 204:
-                    print 'Stop container FAIL : ' + result.get('status_code')
+                    self.fail('Stop container FAIL : ' + str(result.get('status_code')))
             else:
-                print 'Create container FAIL : ' + result.get('status_code')
+                self.fail('Create container FAIL : ' + str(result.get('status_code')))
                 
         time.sleep(10)
                 
@@ -124,21 +123,32 @@ class ContainerLogTest(unittest.TestCase):
         if result.get('status_code') == 204:
             result = self.c.remove(self.c_name, volumes = True, force = True)
             if result.get('status_code') != 204:
-                print 'Remove container FAIL : ' + result.get('status_code')
+                self.fail('Remove container FAIL : ' + str(result.get('status_code')))
         else:
-            print 'Stop container FAIL : ' + result.get('status_code')
+            self.fail('Stop container FAIL : ' + str(result.get('status_code')))
     
     def test_logs(self):
-        time.sleep(10)
         logs = self.c.logs(self.c_name)
         print 'logs:' + json.dumps(logs)
 
     def test_logs_with_stream(self):
+        if base_test.print_text:
+            print '-------------log stream start--------------'
+        log_list = []
         for log in self.c.logs_stream(self.c_name):
-            print log
-    
+            log_list.append(log)
+            if base_test.print_text:
+                print log
+            if len(log_list) > 0:
+                break 
+        self.assertGreater(len(log_list), 0)
+        if base_test.print_text:
+            print '--------------log stream end---------------'
+        
     def test_logs_local(self):
-        print len(self.c.logs_local(self.c_name, True, True, '2016-02-22 00:00:00'))
+        print '-------------log local start--------------'
+        print len(self.c.logs_local(self.c_name, True, True, '2016-03-01 00:00:00'))
+        print '--------------log local end---------------'
 
 
 
