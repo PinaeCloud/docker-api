@@ -2,7 +2,7 @@
 
 import os
 
-from docker.utils import auth
+from docker.utils import auth, time_utils
 
 class Host():
     def __init__(self, session):
@@ -22,6 +22,27 @@ class Host():
     def ping(self):
         url = self.session._url('/_ping')
         return self.session._result(self.session._get(url))
+    
+    def event(self, start_time = None, end_time = None, filters = None):
+
+        params = {}
+        if start_time is not None:
+            params['since'] = int(time_utils.to_timestamp(start_time))
+        if end_time is not None:
+            params['until'] = int(time_utils.to_timestamp(end_time))
+        if filters is not None:
+            params['filters'] = filters
+            
+        url = self.session._url('/events')
+        response = self.session._result(self.session._get(url, params=params, stream=True), True)
+        
+        event = ''
+        for chunk in response:
+            event = event + chunk
+            if chunk == '\n':
+                event = event.strip()
+                yield event
+                event = ''
     
     def login(self, username, password = None, email = None, registry = None):
         

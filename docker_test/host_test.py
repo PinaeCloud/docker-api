@@ -2,6 +2,7 @@
 
 import unittest
 import json
+
 from docker import session
 from docker import host
 
@@ -23,7 +24,7 @@ class HostTest(unittest.TestCase):
             self.assertGreater(content.get('MemTotal'), 0)
             self.assertGreater(content.get('Images'), 0)
         else:
-            self.fail('info: get docker server info fail, status_code' + status_code)
+            self.fail('info: get docker server info fail, status_code : ' + str(status_code))
         if base_test.print_json:
             print 'info:' + json.dumps(response)
     
@@ -37,7 +38,7 @@ class HostTest(unittest.TestCase):
             self.assertIsNotNone(content.get('Version'))
             self.assertIsNotNone(content.get('ApiVersion'))
         else:
-            self.fail('version: get docker server version fail, status_code' + status_code)
+            self.fail('version: get docker server version fail, status_code : ' + str(status_code))
         if base_test.print_json:
             print 'version:' + json.dumps(response)
     
@@ -47,7 +48,7 @@ class HostTest(unittest.TestCase):
         if status_code == 200:
             self.assertEqual(response.get('content'), 'OK')
         else:
-            self.fail('ping: ping docker server fail, status_code' + status_code)
+            self.fail('ping: ping docker server fail, status_code : ' + str(status_code))
         if base_test.print_json:
             print 'ping:' + json.dumps(response)
             
@@ -58,7 +59,7 @@ class HostTest(unittest.TestCase):
             content = response.get('content')
             self.assertEqual(content.get('Status'), 'Login Succeeded')
         else:
-            self.fail('long: long to docker registry fail, status_code' + status_code)
+            self.fail('login: login to docker registry fail, status_code : ' + str(status_code))
         if base_test.print_json:
             print 'login:' + json.dumps(response)
     
@@ -74,4 +75,14 @@ class HostTest(unittest.TestCase):
         self.assertGreater(len(response), 0)
         if base_test.print_json:
             print 'get_all_auth_config:' + json.dumps(response)
-
+            
+    def test_event(self):
+        response = self.h.event('2016-01-01 00:00:00')
+        msg_list = []
+        for msg in response:
+            msg_list.append(msg)
+            if base_test.print_text:
+                print 'event:' + msg
+            if len(msg_list) > 0:
+                break 
+        self.assertGreater(len(msg_list), 0)

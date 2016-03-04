@@ -1,3 +1,5 @@
+# coding=utf-8
+
 # Copyright 2013 dotCloud inc.
 
 #    Licensed under the Apache License, Version 2.0 (the "License");

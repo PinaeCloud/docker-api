@@ -22,7 +22,7 @@ def get_session(base_url, base_path=None):
     return Session(base_url, base_path)
 
 class Session(requests.Session):
-    def __init__(self, base_url=None, base_path=None):
+    def __init__(self, base_url = None, base_path = None):
         super(Session, self).__init__()
         
         if base_url is None:
@@ -50,20 +50,40 @@ class Session(requests.Session):
         return kwargs
 
     def _post(self, url, **kwargs):
-        return self.post(url, **self._set_request_timeout(kwargs))
+        stream = kwargs.get('stream')
+        if stream is not None and stream is True:
+            return self.get(url, **kwargs)
+        else:
+            return self.post(url, **self._set_request_timeout(kwargs))
 
     def _get(self, url, **kwargs):
-        return self.get(url, **self._set_request_timeout(kwargs))
+        stream = kwargs.get('stream')
+        if stream is not None and stream is True:
+            return self.get(url, **kwargs)
+        else:
+            return self.get(url, **self._set_request_timeout(kwargs))
+        
+    def _post_json(self, url, data, **kwargs):
+        req_data = {}
+        if data is not None:
+            for key in data:
+                value = data[key]
+                if value is not None:
+                    req_data[key] = value
+        
+        if 'headers' not in kwargs:
+            kwargs['headers'] = {}
+        kwargs['headers']['Content-Type'] = 'application/json'
+        return self.post(url, data=json.dumps(req_data), **kwargs)
 
     def _delete(self, url, **kwargs):
         return self.delete(url, **self._set_request_timeout(kwargs))
 
-    def _url(self, path, versioned_api=True):
+    def _url(self, path, versioned_api = True):
         url = '{0}{1}'.format(self.base_url, path)
         return url
 
-
-    def _result(self, response, stream=False):
+    def _result(self, response, stream = False):
         result = {}
         
         result['status_code'] = response.status_code
@@ -113,19 +133,6 @@ class Session(requests.Session):
             # encountered an error immediately
             yield self._result(response)
     
-    def _post_json(self, url, data, **kwargs):
-        req_data = {}
-        if data is not None:
-            for key in data:
-                value = data[key]
-                if value is not None:
-                    req_data[key] = value
-        
-        if 'headers' not in kwargs:
-            kwargs['headers'] = {}
-        kwargs['headers']['Content-Type'] = 'application/json'
-        return self.post(url, data=json.dumps(req_data), **kwargs)
-    
     def _read(self, path, tail=None):
         result = text_file.read_file(self.base_path + path, tail)
         return result
@@ -165,10 +172,10 @@ class UnixAdapter(requests.adapters.HTTPAdapter):
             
         self.socket_path = socket_path
         self.timeout = timeout
-        self.pools = RecentlyUsedContainer(10, dispose_func=lambda p: p.close())
+        self.pools = RecentlyUsedContainer(10, dispose_func = lambda p: p.close())
         super(UnixAdapter, self).__init__()
 
-    def get_connection(self, url, proxies=None):
+    def get_connection(self, url, proxies = None):
         with self.pools.lock:
             pool = self.pools.get(url)
             if pool:
