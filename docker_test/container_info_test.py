@@ -3,6 +3,9 @@
 import time
 import unittest
 import json
+import os
+import os.path
+
 from docker import session
 from docker import container
 
@@ -96,7 +99,17 @@ class ContainerInfoTest(unittest.TestCase):
         self.assertEqual(len(c_layer), 7)
         if base_test.print_json:
             print 'layer:' + json.dumps(c_layer)
-
+            
+    def test_export(self):
+        export_file = '/tmp/export-container.tar'
+        c_export = self.c.export(base_test.container_name, export_file)
+        status_code = c_export.get('status_code')
+        if status_code == 200:
+            self.assertEqual(c_export.get('content'), export_file)
+            self.assertTrue(os.path.exists(export_file))
+        else:
+            self.fail('export : export {0} to {1} fail, status_code : {2}'.format(self.c_name, export_file, str(status_code)))
+            
 class ContainerLogTest(unittest.TestCase):
     
     def setUp(self):

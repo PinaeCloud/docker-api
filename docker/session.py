@@ -103,15 +103,14 @@ class Session(requests.Session):
                     result['content-type'] = 'text/plain'
                     result['content'] = response.text
             elif content_type == 'application/octet-stream' or content_type == 'application/x-tar':
-                #TODO 二进制输出
-                result['content'] = response.content
+                result = response
             else:
                 result['content'] = response.text
             
         return result
     
-    def _stream_raw_result(self, response):
-        for out in response.iter_content(chunk_size = 1, decode_unicode = True):
+    def _stream_raw_result(self, response, chunk_size = 1):
+        for out in response.iter_content(chunk_size = chunk_size, decode_unicode = True):
             yield out
             
     def _stream_helper(self, response, decode = False):

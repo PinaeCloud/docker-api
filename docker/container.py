@@ -199,6 +199,33 @@ class Container():
         response = self.session._result(self.session._post(url, params={}))
         return response
     
-    def commit(self, container_id):
+    def wait(self, container_id):
+        url = self.session._url('/containers/{0}/wait'.format(container_id))
+        response = self.session._result(self.session._post(url, params={}))
+        return response
+    
+    def update(self, container_id, resource):
+        if resource is None:
+            raise IOError('resource is Empty')
+        url = self.session._url('/containers/{0}/update'.format(container_id))
+        response = self.session._result(self.session._post(url, data=resource, params={}))
+        return response
+    
+    def commit(self, container_id, repository, tag = None, authot = None, comment = None, pause = False):
         pass
     
+    def export(self, container_id, filename):
+        url = self.session._url('/containers/{0}/export'.format(container_id))
+        response = self.session._get(url, params={}, stream=True)
+        if response.status_code == 200:
+            export_file = open(filename,'wb') 
+            export_date = self.session._stream_raw_result(response, 2048)
+            for chunk in export_date:
+                export_file.write(chunk)
+            export_file.close()
+        return {
+                'status_code' : response.status_code,
+                'content-type' : 'text/plain',
+                'content' : filename
+                }
+                
