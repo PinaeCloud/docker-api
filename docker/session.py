@@ -90,8 +90,6 @@ class Session(requests.Session):
         
         headers = response.headers
         content_type = headers.get('content-type')
-        
-        result['content-type'] = content_type
 
         if stream:
             return self._stream_raw_result(response)

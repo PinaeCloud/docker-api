@@ -20,6 +20,6 @@ def get_container():
 def get_container_with_log():
     c_cfg = container_config.ContainerConfig()
     c_cfg.set_image('ubuntu:14.04')
-    c_cfg.set_command(['/bin/bash', '-c', 'while true; do echo log test; sleep 5;done'])
+    c_cfg.set_command(['/bin/bash', '-c', 'echo container log'])
     return c_cfg
     

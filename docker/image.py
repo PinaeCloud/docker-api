@@ -3,8 +3,9 @@
 import logging
 import types
 
-from text import string_utils as str_utils
 from docker.utils import auth
+from docker.utils import decorators
+from text import string_utils as str_utils
 
 log = logging.getLogger(__name__)
 
@@ -41,10 +42,8 @@ class Image():
 
         return response
     
+    @decorators.check_image
     def inspect(self, image_name, version = None):
-        if str_utils.is_empty(image_name):
-            raise IOError('Image name is Empty')
-        
         if version != None:
             image_name = image_name + ':' + version
             
@@ -52,34 +51,25 @@ class Image():
         response = self.session._result(self.session._get(url, params={}))
         return response
     
+    @decorators.check_image
     def history(self, image_name, version = None):
-        if str_utils.is_empty(image_name):
-            raise IOError('Image name is Empty')
-        
         if version != None:
             image_name = image_name + ':' + version
-            
+                     
         url = self.session._url('/images/{0}/history'.format(image_name))
         response = self.session._result(self.session._get(url, params={}))
         return response
     
+    @decorators.check_image
     def search(self, image_name):
-        if str_utils.is_empty(image_name):
-            raise IOError('Image name is Empty')
-        
-        params = {}
-        params['term'] = image_name
-        
+        params = {'term' : image_name}
         url = self.session._url('/images/search')
         response = self.session._result(self.session._get(url, params=params))
         return response
     
+    @decorators.check_image
     def tag(self, image_name, repository, tag = None, force = False):
-        if str_utils.is_empty(image_name):
-            raise IOError('Image name is Empty')
-        
         params = {'tag': tag, 'repo': repository, 'force': 1 if force else 0 }
-        
         url = self.session._url('/images/{0}/tag'.format(image_name))
         response = self.session._result(self.session._post(url, params = params))
         return response
@@ -92,13 +82,11 @@ class Image():
         headers = {'Content-Type': 'application/tar'}
         
         url = self.session._url('/images/create')
-        
         with open(filename, 'rb') as image_file:
             return self.session._result(
                 self.session._post(url, data=image_file, params=params, headers=headers,
                            timeout=None))
         
-    
     def create_by_url(self, url, repository = None, tag = None):
         if str_utils.is_empty(url):
             raise IOError('URL is Empty')
@@ -109,6 +97,7 @@ class Image():
         response = self.session._result(self.session._post_json(url, data=None, params=params))
         return response
     
+    @decorators.check_image
     def create_by_image(self, image_name, repository = None, tag = None):
         if str_utils.is_empty(image_name):
             raise IOError('Image name is Empty')
@@ -119,6 +108,7 @@ class Image():
         response = self.session._result(self.session._post_json(url, data=None, params=params))
         return response
     
+    @decorators.check_image
     def remove(self, image_name, force = False, noprune = False):
         if str_utils.is_empty(image_name):
             raise IOError('Image name is Empty')

@@ -1,12 +1,16 @@
 # coding=utf-8
 
 import json
+import logging
 import types
 import time
 
-from utils import time_utils
+from docker.utils import time_utils
+from docker.utils import decorators 
 from docker import container_config
 from text import string_utils as str_utils
+
+log = logging.getLogger(__name__)
 
 class Container():
     def __init__(self, session):
@@ -33,24 +37,27 @@ class Container():
             
         url = self.session._url('/containers/json')
         response = self.session._result(self.session._get(url, params=params))
-     
         return response
     
+    @decorators.check_container
     def inspect(self, container_id):
         url = self.session._url('/containers/{0}/json'.format(container_id))
         response = self.session._result(self.session._get(url, params={}))
         return response
     
+    @decorators.check_container
     def status(self, container_id):
         url = self.session._url('/containers/{0}/stats'.format(container_id))
         response = self.session._result(self.session._get(url, params={'stream': False}))
         return response
-
+    
+    @decorators.check_container
     def top(self, container_id):
         url = self.session._url('/containers/{0}/top'.format(container_id))
         response = self.session._result(self.session._get(url, params={}))
         return response
     
+    @decorators.check_container
     def logs(self, container_id, stdout = True, stderr = True, stream = False,
              timestamps = False, tail = 'all', since = None):
         params = {'stderr': stderr and 1 or 0,
@@ -68,20 +75,23 @@ class Container():
             response['content'] = log_list
         return response
     
+    @decorators.check_container
     def logs_stream(self, container_id, stdout = True, stderr = True, timestamps = False, since = None):
         response = self.logs(container_id, stdout, stderr, True, timestamps, 'all', since)
         
-        log = ''
+        log_str = ''
         for chunk in response:
-            log = log + chunk
+            log_str = log_str + str(chunk.encode("utf-8")) 
             if chunk == '\n':
-                log = log.strip()
-                yield log
-                log = ''
+                log_str = log_str.strip()
+                yield log_str
+                log_str = ''
                 
+    @decorators.check_container
     def logs_local(self, container_id, stdout = True, stderr = True, since = None):
         container = self.inspect(container_id)
-        if container.get('status_code') == 200:
+        status_code = container.get('status_code')
+        if status_code == 200:
             container_id = container['content']['Id']
             log_list = self.session._read('/containers/{0}/{0}-json.log'.format(container_id))
             if log_list is not None:
@@ -112,9 +122,11 @@ class Container():
                         result.append(log)
                         
                 if len(result) > 0:
-                    return result
-        return None
+                    return {'status_code' : 200, 'content' : result}
+                
+        return {'status_code' : status_code}
     
+    @decorators.check_container
     def layer(self, container_id):
         layers = []
         
@@ -126,15 +138,19 @@ class Container():
                     recurse_layer(self.session._read('/aufs/layers/{0}'.format(mount_id)))
         
         container = self.inspect(container_id)
-        if container.get('status_code') == 200:
+        status_code = container.get('status_code')
+        if status_code == 200:
             container_id = container['content']['Id']
             
             mount_id = self.session._read('/image/aufs/layerdb/mounts/{0}/mount-id'.format(container_id))
             if mount_id != None:
                 recurse_layer(mount_id)
                 
-            return layers
+            return {'status_code' : 200, 'content' : layers}
+        else:
+            return {'status_code' : status_code}
     
+    @decorators.check_container
     def create(self, name, container_cfg):
         params = {}
         if isinstance(container_cfg, container_config.ContainerConfig):
@@ -145,13 +161,17 @@ class Container():
         response = self.session._result(self.session._post_json(url, data=container_cfg, params=params))
         return response
     
+    @decorators.check_container
     def rename(self, container_id, new_name):
+        if str_utils.is_empty(new_name):
+            raise IOError('New container name is Empty')
         if new_name:
             params = {'name' : new_name}
         url = self.session._url('/containers/{0}/rename'.format(container_id))
         response = self.session._result(self.session._post(url, params=params))
         return response
 
+    @decorators.check_container
     def remove(self, container_id, volumes = False, force = False):
         params = {}
         params['v'] = True if volumes is True else False
@@ -160,11 +180,13 @@ class Container():
         response = self.session._result(self.session._delete(url, params=params))
         return response
     
+    @decorators.check_container
     def start(self, container_id):
         url = self.session._url('/containers/{0}/start'.format(container_id))
         response = self.session._result(self.session._post(url, params={}))
         return response
     
+    @decorators.check_container
     def stop(self, container_id, wait = None):
         params = {}
         if wait:
@@ -173,6 +195,7 @@ class Container():
         response = self.session._result(self.session._post(url, params=params))
         return response
 
+    @decorators.check_container
     def restart(self, container_id, wait = None):
         params = {}
         if wait:
@@ -181,6 +204,7 @@ class Container():
         response = self.session._result(self.session._post(url, params=params))
         return response
     
+    @decorators.check_container
     def kill(self, container_id, signal = None):
         params = {}
         if signal:
@@ -189,21 +213,25 @@ class Container():
         response = self.session._result(self.session._post(url, params=params))
         return response
     
+    @decorators.check_container
     def pause(self, container_id):
         url = self.session._url('/containers/{0}/pause'.format(container_id))
         response = self.session._result(self.session._post(url, params={}))
         return response
     
+    @decorators.check_container
     def unpause(self, container_id):
         url = self.session._url('/containers/{0}/unpause'.format(container_id))
         response = self.session._result(self.session._post(url, params={}))
         return response
     
+    @decorators.check_container
     def wait(self, container_id):
         url = self.session._url('/containers/{0}/wait'.format(container_id))
         response = self.session._result(self.session._post(url, params={}))
         return response
     
+    @decorators.check_container
     def update(self, container_id, resource):
         if resource is None:
             raise IOError('resource is Empty')
@@ -211,10 +239,14 @@ class Container():
         response = self.session._result(self.session._post(url, data=resource, params={}))
         return response
     
+    @decorators.check_container
     def commit(self, container_id, repository, tag = None, authot = None, comment = None, pause = False):
         pass
     
+    @decorators.check_container
     def export(self, container_id, filename):
+        if str_utils.is_empty(filename):
+            raise IOError('Export filename is Empty')
         url = self.session._url('/containers/{0}/export'.format(container_id))
         response = self.session._get(url, params={}, stream=True)
         if response.status_code == 200:
@@ -225,7 +257,6 @@ class Container():
             export_file.close()
         return {
                 'status_code' : response.status_code,
-                'content-type' : 'text/plain',
                 'content' : filename
                 }
                 
