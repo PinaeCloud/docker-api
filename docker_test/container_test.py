@@ -9,7 +9,7 @@ from docker import session
 from docker import container
 
 from docker_test import base_test
-
+'''
 class ContainerInfoTest(unittest.TestCase):
     
     def setUp(self):
@@ -110,11 +110,46 @@ class ContainerInfoTest(unittest.TestCase):
             os.remove(export_file)
         if base_test.print_json:
             print 'export:' + json.dumps(c_export)
+'''      
+class ContainerExecTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.c_name = base_test.container_name
         
-class ContainerManageTest(unittest.TestCase):
-    def __init__(self):
-        pass
-
+        self.c_session = session.get_session(base_test.session_url)
+        self.c = container.Container(self.c_session)
+        
+        c_cfg = self.c.status(self.c_name)
+        if c_cfg.get('status_code') != 200:
+            c_cfg = base_test.get_container_with_stdin()
+            result = self.c.create(self.c_name, c_cfg)
+            if result.get('status_code') == 201:
+                result = self.c.start(self.c_name)
+                if result.get('status_code') != 204:
+                    self.fail('Start container FAIL : ' + str(result.get('status_code')))
+            else:
+                self.fail('Create container FAIL : ' + str(result.get('status_code')))
+                
+    def tearDown(self):
+        result = self.c.stop(self.c_name)
+        if result.get('status_code') == 204:
+            result = self.c.remove(self.c_name, volumes = True, force = True)
+            if result.get('status_code') != 204:
+                self.fail('Remove container FAIL : ' + str(result.get('status_code')))
+        else:
+            self.fail('Stop container FAIL : ' + str(result.get('status_code')))
+            
+    def test_exec(self):
+        response = self.c.exec_create(self.c_name, ['echo', 'exec test'])
+        status_code = response.get('status_code')
+        if status_code == 201:
+            exec_id = response.get('content').get('Id')
+            self.assertIsNotNone(exec_id)
+            exec_result = self.c.exec_start(exec_id)
+            print exec_result
+        else:
+            self.fail('Create exec FAIL : ' + str(status_code))
+'''
 class ContainerLogTest(unittest.TestCase):
     
     def setUp(self):
@@ -162,6 +197,6 @@ class ContainerLogTest(unittest.TestCase):
         self.assertEquals(len(logs.get('content')), 1)
         if base_test.print_json:
             print 'logs_local:' + json.dumps(logs)
-
+'''
 
         

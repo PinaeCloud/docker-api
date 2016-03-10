@@ -38,8 +38,8 @@ class Session(requests.Session):
         #set docker server url
         if base_url.startswith('unix://'):
             unix_socket_adapter = UnixAdapter(base_url, 60)
-            self.mount('unix://', unix_socket_adapter)
-            self.base_url = 'unix://localhost'
+            self.mount('http+unix://', unix_socket_adapter)
+            self.base_url = 'http+unix://localhost'
         else:
             self.base_url = base_url
         

@@ -150,7 +150,6 @@ class Container():
         else:
             return {'status_code' : status_code}
     
-    @decorators.check_container
     def create(self, name, container_cfg):
         params = {}
         if isinstance(container_cfg, container_config.ContainerConfig):
@@ -164,7 +163,7 @@ class Container():
     @decorators.check_container
     def rename(self, container_id, new_name):
         if str_utils.is_empty(new_name):
-            raise IOError('New container name is Empty')
+            raise IOError('New container name is empty')
         if new_name:
             params = {'name' : new_name}
         url = self.session._url('/containers/{0}/rename'.format(container_id))
@@ -234,19 +233,39 @@ class Container():
     @decorators.check_container
     def update(self, container_id, resource):
         if resource is None:
-            raise IOError('resource is Empty')
+            raise IOError('resource is empty')
         url = self.session._url('/containers/{0}/update'.format(container_id))
         response = self.session._result(self.session._post(url, data=resource, params={}))
         return response
     
-    @decorators.check_container
-    def commit(self, container_id, repository, tag = None, authot = None, comment = None, pause = False):
+    def resize(self, container_id, height = 40, width = 80):
+        if not str_utils.is_numeric(height) or not str_utils.is_numeric(width):
+            raise IOError('height or width is NOT Numeric')
+        params={'h' : height, 'w' : width}
+        url = self.session._url('/containers/{0}/wait'.format(container_id))
+        response = self.session._result(self.session._post(url, params=params))
+        return response
+    
+    def tag(self, container_id, tag):
         pass
+    
+    @decorators.check_container
+    def commit(self, container_id, repository, tag = None, author = None, comment = None, pause = False, config = None):
+        params = {
+            'container': container_id,
+            'repo': repository,
+            'tag': tag,
+            'comment': comment,
+            'author': author
+                }
+        u = self._url("/commit")
+        return self._result(self._post_json(u, data=config, params=params),
+                            json=True)
     
     @decorators.check_container
     def export(self, container_id, filename):
         if str_utils.is_empty(filename):
-            raise IOError('Export filename is Empty')
+            raise IOError('Export filename is empty')
         url = self.session._url('/containers/{0}/export'.format(container_id))
         response = self.session._get(url, params={}, stream=True)
         if response.status_code == 200:
@@ -259,4 +278,30 @@ class Container():
                 'status_code' : response.status_code,
                 'content' : filename
                 }
-                
+        
+    @decorators.check_container
+    def exec_create(self, container_id, cmd, stdin = False, stdout = True, stderr = True, tty = False): 
+        if str_utils.is_empty(cmd):
+            raise IOError('Exec cmd is empty')
+        if isinstance(cmd, str):
+            cmd = cmd.split(' ')
+        data = {
+            'AttachStdin': stdin,
+            'AttachStdout': stdout,
+            'AttachStderr': stderr,
+            'Tty': tty,
+            'Cmd': cmd
+                }
+        url = self.session._url('/containers/{0}/exec'.format(container_id))
+        response = self.session._result(self.session._post_json(url, data=data, params={}))
+        return response
+    
+    def exec_start(self, exec_id, detach = False, tty= False, stream = False):
+        data = {
+            'Detach': detach,
+            'Tty': tty,
+                }
+        url = self.session._url('/exec/{0}/start'.format(exec_id))
+        response = self.session._result(self.session._post_json(url, data=data, params={}, stream=stream), stream)
+        return response
+    

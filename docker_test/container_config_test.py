@@ -14,6 +14,7 @@ class ContainerConfigTest(unittest.TestCase):
         new_container.set_hostname('test-container', 'workgroup')
         new_container.set_tty(True)
         new_container.set_attach(False, True, True)
+        new_container.set_stdin(True)
         new_container.set_privileged(True)
         new_container.set_cpu(2, 512)
         new_container.set_memory(262144, 524288)

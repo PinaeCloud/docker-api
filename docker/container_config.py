@@ -56,6 +56,8 @@ class ContainerConfig():
         self.__set_value('AttachStdin', self.running.get('stdin'))
         self.__set_value('AttachStdout', self.running.get('stdout'))
         self.__set_value('AttachStderr', self.running.get('stderr'))
+        self.__set_value('StdinOnce', self.running.get('stdinonce'))
+        self.__set_value('OpenStdin', self.running.get('openstdin'))
         
         return self.config
     
@@ -196,6 +198,11 @@ class ContainerConfig():
         self.running['stdin'] = stdin
         self.running['stdout'] = stdout
         self.running['stderr'] = stderr
+        if stdin:
+            self.running['stdinonce'] = True
+        
+    def set_stdin(self, open_stdin = True):
+        self.running['openstdin'] = open_stdin
         
     def __set_value(self, path, item):
         if item != None:
