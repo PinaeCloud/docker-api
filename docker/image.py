@@ -76,7 +76,7 @@ class Image():
     
     def create_by_file(self, filename, repository = None, tag = None):
         if str_utils.is_empty(filename):
-            raise IOError('Filename is Empty')
+            raise ValueError('Filename is Empty')
         
         params = {'fromSrc' : '-', 'repo' : repository, 'tag' : tag}
         headers = {'Content-Type': 'application/tar'}
@@ -89,7 +89,7 @@ class Image():
         
     def create_by_url(self, url, repository = None, tag = None):
         if str_utils.is_empty(url):
-            raise IOError('URL is Empty')
+            raise ValueError('URL is Empty')
         
         params = {'fromSrc' : url, 'repo' : repository, 'tag' : tag}
         
@@ -100,7 +100,7 @@ class Image():
     @decorators.check_image
     def create_by_image(self, image_name, repository = None, tag = None):
         if str_utils.is_empty(image_name):
-            raise IOError('Image name is Empty')
+            raise ValueError('Image name is Empty')
         
         params = {'fromImage' : image_name, 'repo' : repository, 'tag' : tag}
         
@@ -111,7 +111,7 @@ class Image():
     @decorators.check_image
     def remove(self, image_name, force = False, noprune = False):
         if str_utils.is_empty(image_name):
-            raise IOError('Image name is Empty')
+            raise ValueError('Image name is Empty')
         
         params = {'force': force, 'noprune': noprune}
         
@@ -121,9 +121,9 @@ class Image():
     
     def pull(self, repository, tag, stream = False, auth_config = None):
         if str_utils.is_empty(repository):
-            raise IOError('Repository name is Empty')
+            raise ValueError('Repository name is Empty')
         if str_utils.is_empty(tag):
-            raise IOError('Repository tag is Empty')
+            raise ValueError('Repository tag is Empty')
          
         registry, _ = auth.resolve_repository_name(repository)
         params = {'tag': tag, 'fromImage': repository}
@@ -141,7 +141,7 @@ class Image():
     
     def push(self, repository, tag = None, stream = False, auth_config = None):
         if str_utils.is_empty(repository):
-            raise IOError('Repository name is Empty')
+            raise ValueError('Repository name is Empty')
         
         registry, _ = auth.resolve_repository_name(repository)
         params = {'tag': tag}
@@ -163,7 +163,7 @@ class Image():
             headers = {}
         
         if auth_config is None:
-            log.debug("loading from filesystem")
+            log.debug("loading auth config from filesystem")
             self._auth_configs = auth.load_config()
             auth_config = auth.resolve_authconfig(self._auth_configs, registry)
         else:

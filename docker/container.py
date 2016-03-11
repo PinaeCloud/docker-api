@@ -4,8 +4,10 @@ import json
 import logging
 import types
 import time
+import base64
 
 from docker.utils import time_utils
+from docker.utils import tar_utils
 from docker.utils import decorators 
 from docker import container_config
 from text import string_utils as str_utils
@@ -18,8 +20,8 @@ class Container():
  
     def list(self, container_id = None, show_all = False, show_size = False, status = None, labels = None, exit_code = None):
         params = {}
-        params['all'] = True if show_all is True else False
-        params['size'] = True if show_size is True else False
+        params['all'] = show_all and True or False
+        params['size'] = show_size and True or False
         
         filters = {}
         if status is not None:
@@ -60,10 +62,10 @@ class Container():
     @decorators.check_container
     def logs(self, container_id, stdout = True, stderr = True, stream = False,
              timestamps = False, tail = 'all', since = None):
-        params = {'stderr': stderr and 1 or 0,
-                  'stdout': stdout and 1 or 0,
-                  'timestamps': timestamps and 1 or 0,
-                  'follow': stream and 1 or 0,
+        params = {'stderr': stderr,
+                  'stdout': stdout,
+                  'timestamps': timestamps,
+                  'follow': stream,
                   'tail': tail,
                   'since': since
                 }
@@ -101,7 +103,7 @@ class Container():
                     stream = log.get('stream')
                     
                     is_match = False
-                    if (stdout is True and stream == 'stdout') or (stderr is True and stream == 'stderr'):
+                    if (stdout and stream == 'stdout') or (stderr and stream == 'stderr'):
                         is_match = True
 
                     if since is not None:
@@ -163,7 +165,7 @@ class Container():
     @decorators.check_container
     def rename(self, container_id, new_name):
         if str_utils.is_empty(new_name):
-            raise IOError('New container name is empty')
+            raise ValueError('New container name is empty')
         if new_name:
             params = {'name' : new_name}
         url = self.session._url('/containers/{0}/rename'.format(container_id))
@@ -173,8 +175,8 @@ class Container():
     @decorators.check_container
     def remove(self, container_id, volumes = False, force = False):
         params = {}
-        params['v'] = True if volumes is True else False
-        params['force'] = True if force is True else False
+        params['v'] = volumes and True or False
+        params['force'] = force and True or False
         url = self.session._url('/containers/{0}'.format(container_id))
         response = self.session._result(self.session._delete(url, params=params))
         return response
@@ -233,21 +235,20 @@ class Container():
     @decorators.check_container
     def update(self, container_id, resource):
         if resource is None:
-            raise IOError('resource is empty')
+            raise ValueError('resource is empty')
         url = self.session._url('/containers/{0}/update'.format(container_id))
         response = self.session._result(self.session._post(url, data=resource, params={}))
         return response
     
+    @decorators.check_container
     def resize(self, container_id, height = 40, width = 80):
         if not str_utils.is_numeric(height) or not str_utils.is_numeric(width):
-            raise IOError('height or width is NOT Numeric')
+            raise ValueError('height or width is NOT Numeric')
         params={'h' : height, 'w' : width}
         url = self.session._url('/containers/{0}/wait'.format(container_id))
         response = self.session._result(self.session._post(url, params=params))
         return response
     
-    def tag(self, container_id, tag):
-        pass
     
     @decorators.check_container
     def commit(self, container_id, repository, tag = None, author = None, comment = None, pause = False, config = None):
@@ -265,7 +266,7 @@ class Container():
     @decorators.check_container
     def export(self, container_id, filename):
         if str_utils.is_empty(filename):
-            raise IOError('Export filename is empty')
+            raise ValueError('Export filename is empty')
         url = self.session._url('/containers/{0}/export'.format(container_id))
         response = self.session._get(url, params={}, stream=True)
         if response.status_code == 200:
@@ -282,7 +283,7 @@ class Container():
     @decorators.check_container
     def exec_create(self, container_id, cmd, stdin = False, stdout = True, stderr = True, tty = False): 
         if str_utils.is_empty(cmd):
-            raise IOError('Exec cmd is empty')
+            raise ValueError('Exec cmd is empty')
         if isinstance(cmd, str):
             cmd = cmd.split(' ')
         data = {
@@ -299,9 +300,48 @@ class Container():
     def exec_start(self, exec_id, detach = False, tty= False, stream = False):
         data = {
             'Detach': detach,
-            'Tty': tty,
+            'Tty': tty
                 }
         url = self.session._url('/exec/{0}/start'.format(exec_id))
         response = self.session._result(self.session._post_json(url, data=data, params={}, stream=stream), stream)
         return response
     
+    def exec_resize(self, exec_id, height = 40, width = 80):
+        params = {
+            'h': height,
+            'w': width
+                }
+        url = self.session._url('/exec/{0}/resize'.format(exec_id))
+        response = self.session._result(self.session._get(url, params=params))
+        return response
+
+    def exec_inspect(self, exec_id):
+        url = self.session._url('/exec/{0}/json'.format(exec_id))
+        response = self.session._result(self.session._get(url, params={}))
+        return response
+    
+    @decorators.check_container
+    def get_archive(self, container_id, path):
+        params = {'path' : path}
+        url = self.session._url('/containers/{0}/archive'.format(container_id))
+        response = self.session._get(url, params = params, stream = True)
+        if response.status_code == 200:
+            encoded_stat = response.headers.get('x-docker-container-path-stat')
+            stat_data = json.loads(base64.b64decode(encoded_stat)) if encoded_stat is not None else None 
+            return response.raw, stat_data
+        else:
+            return {'status_code', response.status_code}, None
+    
+    @decorators.check_container
+    def put_archive(self, container_id, path, tar_data, overwrite = False):
+        params = {
+                  'path': path, 
+                  'noOverwriteDirNonDir' : overwrite
+                  }
+        if isinstance(tar_data, str):
+            tar_data = tar_utils.tar(tar_data)
+        url = self.session._url('/containers/{0}/archive'.format(container_id))
+        response = self.session._put(url, params = params, data = tar_data)
+        return {'status_code' : response.status_code}
+        
+        
