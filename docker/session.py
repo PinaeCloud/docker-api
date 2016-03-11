@@ -48,11 +48,18 @@ class Session(requests.Session):
         parameter, if not already present."""
         kwargs.setdefault('timeout', self.timeout)
         return kwargs
+    
+    def _put(self, url, **kwargs):
+        stream = kwargs.get('stream')
+        if stream is not None and stream is True:
+            return self.put(url, **kwargs)
+        else:
+            return self.put(url, **self._set_request_timeout(kwargs))
 
     def _post(self, url, **kwargs):
         stream = kwargs.get('stream')
         if stream is not None and stream is True:
-            return self.get(url, **kwargs)
+            return self.post(url, **kwargs)
         else:
             return self.post(url, **self._set_request_timeout(kwargs))
 
@@ -102,6 +109,8 @@ class Session(requests.Session):
                     result['content'] = response.text
             elif content_type == 'application/octet-stream' or content_type == 'application/x-tar':
                 result = response
+            elif content_type == 'application/vnd.docker.raw-stream':
+                result['content'] = response.content
             else:
                 result['content'] = response.text
             
