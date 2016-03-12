@@ -1,3 +1,4 @@
+# coding=utf-8
 
 from text import string_utils as str_utils
 

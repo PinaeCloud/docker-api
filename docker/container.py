@@ -8,6 +8,7 @@ import base64
 
 from docker.utils import time_utils
 from docker.utils import tar_utils
+from docker.utils import system_utils
 from docker.utils import decorators 
 from docker import container_config
 from text import string_utils as str_utils
@@ -129,9 +130,8 @@ class Container():
         return {'status_code' : status_code}
     
     @decorators.check_container
-    def layer(self, container_id):
+    def layer(self, container_id):     
         layers = []
-        
         def recurse_layer(mount_ids):
             if mount_ids != None and len(mount_ids) > 0:
                 for mount_id in mount_ids:
@@ -146,8 +146,13 @@ class Container():
             
             mount_id = self.session._read('/image/aufs/layerdb/mounts/{0}/mount-id'.format(container_id))
             if mount_id != None:
-                recurse_layer(mount_id)
-                
+                fs_type = system_utils.get_docker_fs(self.session.__get_docker_path())
+                if fs_type == 'aufs':
+                    recurse_layer(mount_id)
+                elif fs_type == 'mapper':
+                    layers.append(mount_id)
+                else:
+                    return {'status_code' : 500, 'content' : 'Unknown docker filesystem'}
             return {'status_code' : 200, 'content' : layers}
         else:
             return {'status_code' : status_code}
