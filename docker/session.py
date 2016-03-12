@@ -143,10 +143,10 @@ class Session(requests.Session):
         result = text_file.read_file(self.docker_path + path, tail)
         return result
     
-    def __get_docker_path(self):
+    def _get_docker_path(self):
         return self.docker_path
     
-    def __get_docker_url(self):
+    def _get_docker_url(self):
         return self.docker_url
     
 class UnixHTTPConnection(httplib.HTTPConnection, object):

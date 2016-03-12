@@ -146,7 +146,7 @@ class Container():
             
             mount_id = self.session._read('/image/aufs/layerdb/mounts/{0}/mount-id'.format(container_id))
             if mount_id != None:
-                fs_type = system_utils.get_docker_fs(self.session.__get_docker_path())
+                fs_type = system_utils.get_docker_fs(self.session._get_docker_path())
                 if fs_type == 'aufs':
                     recurse_layer(mount_id)
                 elif fs_type == 'mapper':
