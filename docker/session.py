@@ -1,5 +1,6 @@
 # coding=utf-8
 
+import os.path
 import requests.adapters
 import socket
 import httplib
@@ -13,6 +14,7 @@ import json
 import requests
 
 from text import text_file
+from text import string_utils as str_utils
 
 RecentlyUsedContainer = urllib3._collections.RecentlyUsedContainer
 
@@ -140,8 +142,17 @@ class Session(requests.Session):
             yield self._result(response)
     
     def _read(self, path, tail=None):
-        result = text_file.read_file(self.docker_path + path, tail)
-        return result
+        if str_utils.is_empty(path):
+            raise ValueError('Path is Empty')
+        if path.startswith('/'):
+            filename = self.docker_path + path
+        else:
+            filename = os.path.join(self.docker_path, path)
+        if os.path.exists(filename):
+            result = text_file.read_file(filename, tail)
+            return result
+        else:
+            raise IOError('File {0} not found'.format(filename))
     
     def _get_docker_path(self):
         return self.docker_path

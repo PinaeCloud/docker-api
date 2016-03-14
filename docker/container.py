@@ -5,12 +5,15 @@ import logging
 import types
 import time
 import base64
+import os.path
 
 from docker.utils import time_utils
 from docker.utils import tar_utils
 from docker.utils import system_utils
 from docker.utils import decorators 
 from docker import container_config
+
+from text import edit
 from text import string_utils as str_utils
 
 log = logging.getLogger(__name__)
@@ -135,6 +138,7 @@ class Container():
         def recurse_layer(mount_ids):
             if mount_ids != None and len(mount_ids) > 0:
                 for mount_id in mount_ids:
+                    mount_id = mount_id.strip()
                     if mount_id not in layers:
                         layers.append(mount_id)
                     recurse_layer(self.session._read('/aufs/layers/{0}'.format(mount_id)))
@@ -144,9 +148,9 @@ class Container():
         if status_code == 200:
             container_id = container['content']['Id']
             
-            mount_id = self.session._read('/image/aufs/layerdb/mounts/{0}/mount-id'.format(container_id))
+            fs_type = system_utils.get_docker_fs(self.session._get_docker_path())
+            mount_id = self.session._read('/image/{0}/layerdb/mounts/{1}/mount-id'.format(fs_type, container_id))
             if mount_id != None:
-                fs_type = system_utils.get_docker_fs(self.session._get_docker_path())
                 if fs_type == 'aufs':
                     recurse_layer(mount_id)
                 elif fs_type == 'mapper':
@@ -348,5 +352,53 @@ class Container():
         url = self.session._url('/containers/{0}/archive'.format(container_id))
         response = self.session._put(url, params = params, data = tar_data)
         return {'status_code' : response.status_code}
+    
+    @decorators.check_container
+    def edit_file(self, container_id, script):
+        c_layer = self.layer(container_id)
+        status_code = c_layer.get('status_code')
+        if status_code == 200:
+            layers = c_layer.get('content')
+            if len(layers) > 0:
+                docker_path = self.session._get_docker_path()
+                fs_type = system_utils.get_docker_fs(docker_path)
+                
+                base_path = os.path.join(docker_path, fs_type, 'mnt', layers[0])
+                if os.path.exists(base_path):
+                    edit.edit(script, base_path)
+                    return {'status_code' : 200, 'content' : 'Edit Successful'}
+                else:
+                    return {'status_code' : 404, 'content' : 'Path {0} isnot exists'.format(base_path)}
+            else:
+                return {'status_code' : 500, 'content' : 'Container layout is Empty'}
+        else:
+            return {'status_code' : status_code}
         
+    def cat_file(self, container_id, filename):
+        if str_utils.is_empty(filename):
+            raise ValueError('Filename is Empty')
+        c_layer = self.layer(container_id)
+        status_code = c_layer.get('status_code')
+        if status_code == 200:
+            layers = c_layer.get('content')
+            if len(layers) > 0:
+                fs_type = system_utils.get_docker_fs(self.session._get_docker_path())
+                base_path = os.path.join(fs_type, 'mnt', layers[0])
+                if filename.startswith('/'):
+                    _fn = base_path + filename
+                else:
+                    _fn = os.path.join(base_path, filename)
+
+                try:
+                    content = self.session._read(_fn)
+                    if content and len(content) > 0:
+                        return {'status_code' : 200, 'content' : content}
+                    else:
+                        return {'status_code' : 500, 'content' : 'File is empty'}
+                except IOError, e:
+                    return {'status_code' : 404, 'content' : str(e)}
+            else:
+                return {'status_code' : 500, 'content' : 'Container layout is Empty'}
+        else:
+            return {'status_code' : status_code}
         

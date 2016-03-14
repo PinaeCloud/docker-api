@@ -42,7 +42,7 @@ class ContainerInfoTest(unittest.TestCase):
             self.fail('Stop container FAIL : ' + str(result.get('status_code')))
         
     def test_list(self):
-        c_list = self.c.list(True, True)
+        c_list = self.c.list(None, True, True)
         status_code = c_list.get('status_code')
         if status_code == 200:
             self.assertEqual(len(c_list.get('content')), 1)
@@ -113,6 +113,23 @@ class ContainerInfoTest(unittest.TestCase):
             os.remove(export_file)
         if base_test.print_json:
             print 'export:' + json.dumps(c_export)
+            
+    def test_edit_file(self):
+        script = [
+            '[/root/test]', 
+            'A:[:start]->hello'
+                  ]
+        c_edit = self.c.edit_file(base_test.container_name, script)
+        if base_test.print_json:
+            print 'edit:' + json.dumps(c_edit)
+        c_cat = self.c.cat_file(base_test.container_name, '/root/test')
+        if c_cat.get('status_code') == 200:
+            content = c_cat.get('content')
+            self.assertEquals(len(content), 1)
+            self.assertEquals(content[0].strip(), 'hello')
+            
+        if base_test.print_json:
+            print 'cat:' + json.dumps(c_cat)
             
 class ContainerManageTest(unittest.TestCase):
     def __init__(self):
