@@ -16,6 +16,8 @@ import requests
 from text import text_file
 from text import string_utils as str_utils
 
+from docker import host
+
 RecentlyUsedContainer = urllib3._collections.RecentlyUsedContainer
 
 def get_session(docker_url, docker_path = None):

@@ -43,6 +43,22 @@ class Container():
             
         url = self.session._url('/containers/json')
         response = self.session._result(self.session._get(url, params=params))
+        
+        if response.get('status_code') == 200 and container_id is not None:
+            container_list = [] 
+            content = response.get('content')
+            for container in content:
+                c_id = container.get('Id')
+                if c_id == container_id:
+                    container_list.append(container)
+                else:
+                    c_names = container.get('Names')
+                for c_name in c_names:
+                    if container_id in c_name:
+                        container_list.append(container)
+                        break
+            response['content'] = container_list
+        
         return response
     
     @decorators.check_container
@@ -147,14 +163,19 @@ class Container():
         status_code = container.get('status_code')
         if status_code == 200:
             container_id = container['content']['Id']
-            
+            # After V1.22 container and it's layout are not same name.
+            # Layout's name in image/{fs_type}/layerdb/mounts/{container_id}/mount-id
             fs_type = system_utils.get_docker_fs(self.session._get_docker_path())
-            mount_id = self.session._read('/image/{0}/layerdb/mounts/{1}/mount-id'.format(fs_type, container_id))
+            try:
+                mount_id = self.session._read('/image/{0}/layerdb/mounts/{1}/mount-id'.format(fs_type, container_id))
+            except:
+                mount_id = [container_id]
+
             if mount_id != None:
                 if fs_type == 'aufs':
                     recurse_layer(mount_id)
                 elif fs_type == 'mapper':
-                    layers.append(mount_id)
+                    layers.extend(mount_id)
                 else:
                     return {'status_code' : 500, 'content' : 'Unknown docker filesystem'}
             return {'status_code' : 200, 'content' : layers}

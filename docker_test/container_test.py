@@ -42,18 +42,22 @@ class ContainerInfoTest(unittest.TestCase):
             self.fail('Stop container FAIL : ' + str(result.get('status_code')))
         
     def test_list(self):
-        c_list = self.c.list(None, True, True)
-        status_code = c_list.get('status_code')
-        if status_code == 200:
-            self.assertEqual(len(c_list.get('content')), 1)
-            c_cfg = c_list.get('content')[0]
-            self.assertIsNotNone(c_cfg.get('Id'))
-            self.assertTrue(c_cfg.get('Status').startswith('Up'))
-            self.assertTrue(c_cfg.get('Image'), 'interhui/alpine-ssh')
-        else:
-            self.fail('list : not any container, status_code :' + str(status_code))
-        if base_test.print_json:
-            print 'list : ' + json.dumps(c_list)
+        
+        def check_list(c_list):
+            status_code = c_list.get('status_code')
+            if status_code == 200:
+                self.assertEqual(len(c_list.get('content')), 1)
+                c_cfg = c_list.get('content')[0]
+                self.assertIsNotNone(c_cfg.get('Id'))
+                self.assertTrue(c_cfg.get('Status').startswith('Up'))
+                self.assertTrue(c_cfg.get('Image'), 'interhui/alpine-ssh')
+            else:
+                self.fail('list : not any container, status_code :' + str(status_code))
+            if base_test.print_json:
+                print 'list : ' + json.dumps(c_list)
+                
+        check_list(self.c.list(None, True, True))
+        check_list(self.c.list('test-container', True))
         
     def test_inspect(self):
         c_inspect = self.c.inspect(self.c_name)
