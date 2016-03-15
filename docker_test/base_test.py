@@ -8,6 +8,8 @@ print_json = True
 session_url = 'unix://var/run/docker.sock'
 
 container_name = 'test-container'
+volume_name = 'test-volume'
+network_name = 'test-network'
 image_name = 'alpine-ssh'
 image_version = 'latest'
 
