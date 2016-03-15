@@ -11,39 +11,43 @@ class VolumeTest(unittest.TestCase):
     def setUp(self):
         self.c_session = session.get_session(base_test.session_url)
         self.v = volume.Volume(self.c_session)
-        
+        response = self.v.create(base_test.volume_name, 'local')
+        status_code = response.get('status_code')
+        if status_code != 201:
+            self.fail('Create volume FAIL : ' + str(status_code))
+            
+    def tearDown(self):
+        response = self.v.remove(base_test.volume_name)
+        status_code = response.get('status_code')
+        if status_code != 204:
+            self.fail('Remove volume FAIL : ' + str(status_code))
+            
     def test_list(self):
         response = self.v.list()
         status_code = response.get('status_code')
         if status_code == 200:
             volume_list = response.get('content')
-            self.assertGreater(len(volume_list), 0)
+            self.assertEquals(len(volume_list), 1)
         else:
             self.fail('list: list volume fail, status_code : ' + str(status_code))
         if base_test.print_json:
             print 'list:' + json.dumps(response)
     
     def test_inspect(self):
-        response = self.v.inspect('mysql_data')
+        response = self.v.inspect(base_test.volume_name)
         status_code = response.get('status_code')
         if status_code == 200:
             volume_info = response.get('content')
+            self.assertEqual(volume_info.get('Name'), base_test.volume_name)
             self.assertEqual(volume_info.get('Driver'), 'local')
             self.assertIsNotNone('Mountpoint')
         else:
-            self.fail('inspect : get volume mysql_data fail, status_code : {0}'.format(str(status_code)))
+            self.fail('inspect : get volume {0} fail, status_code : {1}'.format(base_test.volume_name, 
+                                                                                str(status_code)))
         if base_test.print_json:
             print 'inspect:' + json.dumps(response)
-    
-    def test_create(self):
-        self.v.remove('temp_data')
-        response = self.v.create('temp_data', 'local')
-        status_code = response.get('status_code')
-        if status_code == 201:
-            resp_info = self.v.inspect('temp_data')
-            self.assertEqual(resp_info.get('status_code'), 200)
-            self.assertEqual(resp_info.get('content').get('Name'), 'temp_data')
-            self.assertEqual(resp_info.get('content').get('Driver'), 'local')
+
+
 
             
 
