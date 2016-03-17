@@ -23,16 +23,19 @@ class VolumeTest(unittest.TestCase):
             self.fail('Remove volume FAIL : ' + str(status_code))
             
     def test_list(self):
-        response = self.v.list()
-        status_code = response.get('status_code')
-        if status_code == 200:
-            volume_list = response.get('content')
-            self.assertEquals(len(volume_list), 1)
-        else:
-            self.fail('list: list volume fail, status_code : ' + str(status_code))
-        if base_test.print_json:
-            print 'list:' + json.dumps(response)
-    
+        
+        def check_list(v_list):
+            status_code = v_list.get('status_code')
+            if status_code == 200:
+                volume_list = v_list.get('content').get('Volumes')
+                self.assertEquals(len(volume_list), 1)
+            else:
+                self.fail('list: list volume fail, status_code : ' + str(status_code))
+            if base_test.print_json:
+                print 'list:' + json.dumps(v_list)
+        check_list(self.v.list())
+        check_list(self.v.list('test-volume'))
+
     def test_inspect(self):
         response = self.v.inspect(base_test.volume_name)
         status_code = response.get('status_code')
