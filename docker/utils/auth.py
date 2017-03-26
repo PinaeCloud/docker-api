@@ -26,7 +26,7 @@ INDEX_URL = 'https://{0}/v1/'.format(INDEX_NAME)
 DOCKER_CONFIG_FILENAME = os.path.join('.docker', 'config.json')
 LEGACY_DOCKER_CONFIG_FILENAME = '.dockercfg'
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def resolve_repository_name(repo_name):
@@ -65,18 +65,18 @@ def resolve_authconfig(authconfig, registry=None):
     """
     # Default to the public index server
     registry = resolve_index_name(registry) if registry else INDEX_NAME
-    log.debug("Looking for auth entry for {0}".format(repr(registry)))
+    logger.debug("Looking for auth entry for {0}".format(repr(registry)))
 
     if registry in authconfig:
-        log.debug("Found {0}".format(repr(registry)))
+        logger.debug("Found {0}".format(repr(registry)))
         return authconfig[registry]
 
     for key, config in six.iteritems(authconfig):
         if resolve_index_name(key) == registry:
-            log.debug("Found {0}".format(repr(key)))
+            logger.debug("Found {0}".format(repr(key)))
             return config
 
-    log.debug("No entry found")
+    logger.debug("No entry found")
     return None
 
 
@@ -113,7 +113,7 @@ def parse_auth(entries, raise_on_error=False):
     conf = {}
     for registry, entry in six.iteritems(entries):
         if not (isinstance(entry, dict) and 'auth' in entry):
-            log.debug(
+            logger.debug(
                 'Config entry for key {0} is not auth config'.format(registry)
             )
             # We sometimes fall back to parsing the whole config as if it was
@@ -124,7 +124,7 @@ def parse_auth(entries, raise_on_error=False):
                 raise 'Invalid configuration for registry {0}'.format(registry)
             return {}
         username, password = decode_auth(entry['auth'])
-        log.debug(
+        logger.debug(
             'Found entry (registry={0}, username={1})'
             .format(repr(registry), repr(username))
         )
@@ -169,7 +169,7 @@ def load_config(config_path=None):
     config_file = find_config_file(config_path)
 
     if not config_file:
-        log.debug("File doesn't exist")
+        logger.debug("File doesn't exist")
         return {}
 
     try:
@@ -177,24 +177,24 @@ def load_config(config_path=None):
             data = json.load(f)
             res = {}
             if data.get('auths'):
-                log.debug("Found 'auths' section")
+                logger.debug("Found 'auths' section")
                 res.update(parse_auth(data['auths'], raise_on_error=True))
             if data.get('HttpHeaders'):
-                log.debug("Found 'HttpHeaders' section")
+                logger.debug("Found 'HttpHeaders' section")
                 res.update({'HttpHeaders': data['HttpHeaders']})
             if res:
                 return res
             else:
-                log.debug("Couldn't find 'auths' or 'HttpHeaders' sections")
+                logger.debug("Couldn't find 'auths' or 'HttpHeaders' sections")
                 f.seek(0)
                 return parse_auth(json.load(f))
     except (IOError, KeyError, ValueError) as e:
         # Likely missing new Docker config file or it's in an
         # unknown format, continue to attempt to read old location
         # and format.
-        log.debug(e)
+        logger.debug(e)
 
-    log.debug("Attempting to parse legacy auth file format")
+    logger.debug("Attempting to parse legacy auth file format")
     try:
         data = []
         with open(config_file) as f:
@@ -214,8 +214,8 @@ def load_config(config_path=None):
             }
         }
     except Exception as e:
-        log.debug(e)
+        logger.debug(e)
         pass
 
-    log.debug("All parsing attempts failed - returning empty config")
+    logger.debug("All parsing attempts failed - returning empty config")
     return {}

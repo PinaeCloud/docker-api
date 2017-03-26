@@ -41,3 +41,7 @@ class Volume():
     def remove(self, volume_name):
         url = self.session._url('/volumes/{0}'.format(volume_name))
         return self.session._result(self.session._delete(url))
+    
+    def remove_unused(self):
+        url = self.session._url('/volumes/prune')
+        return self.session._result(self.session._post_json(url, params={}))

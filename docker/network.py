@@ -62,3 +62,6 @@ class Network():
         url = self.session._url('/networks/{0}/disconnect'.format(network_name))
         return self.session._result(self.session._post_json(url, data = req_data))
     
+    def remove_unused(self):
+        url = self.session._url('/networks/prune')
+        return self.session._result(self.session._post_json(url, params={}))

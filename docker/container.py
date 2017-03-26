@@ -16,7 +16,7 @@ from docker import container_config
 from text import edit
 from text import string_utils as str_utils
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 class Container():
     def __init__(self, session):
@@ -209,6 +209,11 @@ class Container():
         params['force'] = force and True or False
         url = self.session._url('/containers/{0}'.format(container_id))
         response = self.session._result(self.session._delete(url, params=params))
+        return response
+    
+    def remove_stopped(self):
+        url = self.session._url('/containers/prune')
+        response = self.session._result(self.session._post(url, params={}))
         return response
     
     @decorators.check_container

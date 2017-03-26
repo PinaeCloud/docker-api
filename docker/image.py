@@ -7,7 +7,7 @@ from docker.utils import auth
 from docker.utils import decorators
 from text import string_utils as str_utils
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 class Image():
     def __init__(self, session):
@@ -163,16 +163,16 @@ class Image():
             headers = {}
         
         if auth_config is None:
-            log.debug("loading auth config from filesystem")
+            logger.debug("loading auth config from filesystem")
             self._auth_configs = auth.load_config()
             auth_config = auth.resolve_authconfig(self._auth_configs, registry)
         else:
-            log.debug('Sending supplied auth config')
+            logger.debug('Sending supplied auth config')
             
         if auth_config is not None:
             headers['X-Registry-Auth'] = auth.encode_header(auth_config)
         else:
-            log.debug('No auth config found')
+            logger.debug('No auth config found')
             
 
     
