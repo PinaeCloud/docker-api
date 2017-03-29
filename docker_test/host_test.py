@@ -75,7 +75,7 @@ class HostTest(unittest.TestCase):
         self.assertGreater(len(response), 0)
         if base_test.print_json:
             print 'get_all_auth_config:' + json.dumps(response)
-            
+
     def test_event(self):
         response = self.h.event('2016-01-01 00:00:00')
         msg_list = []

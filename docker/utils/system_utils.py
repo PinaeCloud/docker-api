@@ -11,9 +11,16 @@ def get_docker_fs(base_path):
     return 'unknown'
 
 def get_sys_info():
-    pass
+    system = {
+              'hostname' : platform.node(),
+              'system'  : platform.system(),
+              'machine' : platform.machine(),
+              'architecture' : platform.architecture(),
+              'release' : platform.release(),
+              'dist' : platform.dist(),
+              'python' : platform.python_version()
+              }
+    return system
 
-def mount(fs_type, dev_list, mnt_point):
-    pass
         
         

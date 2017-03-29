@@ -2,11 +2,10 @@
 
 import unittest
 import json
-import os
 import os.path
 import tempfile
 
-from docker.utils import tar_utils
+from docker.utils import tar_utils, file_utils
 
 from docker import session
 from docker import container
@@ -175,6 +174,7 @@ class ContainerArchiveTest(unittest.TestCase):
                     print 'get_archive:' + json.dumps(stat_data)
                     
     def test_put_archive(self):
+        local_hostname = file_utils.read_file('/etc/hostname')
         tar_data = tar_utils.tar(['/etc/hostname'])
         c_archive = self.c.put_archive(self.c_name, '/root/', tar_data)
         if c_archive.get('status_code') == 200:
@@ -185,6 +185,7 @@ class ContainerArchiveTest(unittest.TestCase):
                 tmp_tar_file.seek(0)
                 hostname = tar_utils.untar(tmp_tar_file, None, 'hostname')
                 self.assertGreater(len(hostname), 0)
+                self.assertEqual(local_hostname[0].strip(), hostname.strip())
                 if base_test.print_text:
                     print 'put_archive:' + json.dumps(stat_data)
   
