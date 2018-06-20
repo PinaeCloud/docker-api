@@ -5,16 +5,14 @@ import logging
 import types
 import time
 import base64
-import os.path
 
 from docker.utils import time_utils
 from docker.utils import tar_utils
 from docker.utils import system_utils
 from docker.utils import decorators 
-from docker import container_config
+from docker.utils  import string_utils
 
-from text import edit
-from text import string_utils as str_utils
+from docker import container_config
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +184,7 @@ class Container():
         params = {}
         if isinstance(container_cfg, container_config.ContainerConfig):
             container_cfg = container_cfg.build_config()
-        if str_utils.is_not_empty(name):
+        if string_utils.is_not_empty(name):
             params['name'] = name
         url = self.session._url('/containers/create')
         response = self.session._result(self.session._post_json(url, data=container_cfg, params=params))
@@ -194,7 +192,7 @@ class Container():
     
     @decorators.check_container
     def rename(self, container_id, new_name):
-        if str_utils.is_empty(new_name):
+        if string_utils.is_empty(new_name):
             raise ValueError('New container name is empty')
         if new_name:
             params = {'name' : new_name}
@@ -277,7 +275,7 @@ class Container():
     
     @decorators.check_container
     def resize(self, container_id, height = 40, width = 80):
-        if not str_utils.is_numeric(height) or not str_utils.is_numeric(width):
+        if not string_utils.is_numeric(height) or not string_utils.is_numeric(width):
             raise ValueError('height or width is NOT Numeric')
         params={'h' : height, 'w' : width}
         url = self.session._url('/containers/{0}/wait'.format(container_id))
@@ -300,7 +298,7 @@ class Container():
     
     @decorators.check_container
     def export(self, container_id, filename):
-        if str_utils.is_empty(filename):
+        if string_utils.is_empty(filename):
             raise ValueError('Export filename is empty')
         url = self.session._url('/containers/{0}/export'.format(container_id))
         response = self.session._get(url, params={}, stream=True)
@@ -317,7 +315,7 @@ class Container():
         
     @decorators.check_container
     def exec_create(self, container_id, cmd, stdin = False, stdout = True, stderr = True, tty = False): 
-        if str_utils.is_empty(cmd):
+        if string_utils.is_empty(cmd):
             raise ValueError('Exec cmd is empty')
         if isinstance(cmd, str):
             cmd = cmd.split(' ')
@@ -379,52 +377,3 @@ class Container():
         response = self.session._put(url, params = params, data = tar_data)
         return {'status_code' : response.status_code}
     
-    @decorators.check_container
-    def edit_file(self, container_id, script):
-        c_layer = self.layer(container_id)
-        status_code = c_layer.get('status_code')
-        if status_code == 200:
-            layers = c_layer.get('content')
-            if len(layers) > 0:
-                docker_path = self.session._get_docker_path()
-                fs_type = system_utils.get_docker_fs(docker_path)
-                
-                base_path = os.path.join(docker_path, fs_type, 'mnt', layers[0])
-                if os.path.exists(base_path):
-                    edit.edit(script, base_path)
-                    return {'status_code' : 200, 'content' : 'Edit Successful'}
-                else:
-                    return {'status_code' : 404, 'content' : 'Path {0} isnot exists'.format(base_path)}
-            else:
-                return {'status_code' : 500, 'content' : 'Container layout is Empty'}
-        else:
-            return {'status_code' : status_code}
-        
-    def cat_file(self, container_id, filename):
-        if str_utils.is_empty(filename):
-            raise ValueError('Filename is Empty')
-        c_layer = self.layer(container_id)
-        status_code = c_layer.get('status_code')
-        if status_code == 200:
-            layers = c_layer.get('content')
-            if len(layers) > 0:
-                fs_type = system_utils.get_docker_fs(self.session._get_docker_path())
-                base_path = os.path.join(fs_type, 'mnt', layers[0])
-                if filename.startswith('/'):
-                    _fn = base_path + filename
-                else:
-                    _fn = os.path.join(base_path, filename)
-
-                try:
-                    content = self.session._read(_fn)
-                    if content and len(content) > 0:
-                        return {'status_code' : 200, 'content' : content}
-                    else:
-                        return {'status_code' : 500, 'content' : 'File is empty'}
-                except IOError, e:
-                    return {'status_code' : 404, 'content' : str(e)}
-            else:
-                return {'status_code' : 500, 'content' : 'Container layout is Empty'}
-        else:
-            return {'status_code' : status_code}
-        

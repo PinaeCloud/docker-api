@@ -1,7 +1,7 @@
 # coding=utf-8
 
-from text import string_utils as str_utils
-from text import regex_utils
+from docker.utils import string_utils as str_utils
+from docker.utils import regex_utils
 
 class ContainerConfig():
     

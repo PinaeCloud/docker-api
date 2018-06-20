@@ -1,8 +1,7 @@
 # coding=utf-8
 
 from docker.utils import decorators
-
-from text import string_utils as str_utils
+from docker.utils import string_utils
 
 class Network():
     
@@ -19,7 +18,7 @@ class Network():
         return self.session._result(self.session._get(url))
     
     def create(self, network_name, driver = None, ipam = None, options = None, internal = True):
-        if str_utils.is_empty(network_name):
+        if string_utils.is_empty(network_name):
             raise IOError('Network name is Empty') 
         if ipam is not None and not isinstance(ipam, dict):
             raise TypeError('driver_opts must be a dictionary')
@@ -37,7 +36,7 @@ class Network():
     
     @decorators.check_container
     def connect(self, network_name, container_id, ipv4 = None, ipv6 = None):
-        if str_utils.is_empty(network_name):
+        if string_utils.is_empty(network_name):
             raise ValueError('Network name is Empty')
         ipam = {}
         if not ipv4:
@@ -53,7 +52,7 @@ class Network():
     
     @decorators.check_container
     def disconnect(self, network_name, container_id, force = False):
-        if str_utils.is_empty(network_name):
+        if string_utils.is_empty(network_name):
             raise ValueError('Network name is Empty')
         req_data = {
                     'Container' : container_id,

@@ -2,7 +2,8 @@
 
 import os
 
-from docker.utils import auth, time_utils
+from docker.utils import time_utils
+from docker.utils import auth
 
 class Host():
     def __init__(self, session):

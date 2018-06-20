@@ -6,6 +6,7 @@ print_text = True
 print_json = True
 
 session_url = 'unix://var/run/docker.sock'
+registry_url = 'http://127.0.0.1:5000'
 
 container_name = 'test-container'
 volume_name = 'test-volume'

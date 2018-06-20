@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from text import string_utils as str_utils
+from docker.utils import string_utils
 
 class Volume():
     
@@ -29,7 +29,7 @@ class Volume():
         return self.session._result(self.session._get(url))
     
     def create(self, volume_name, driver = None, driver_opts = None):
-        if str_utils.is_empty(volume_name):
+        if string_utils.is_empty(volume_name):
             raise IOError('Volume name is Empty') 
         if driver_opts is not None and not isinstance(driver_opts, dict):
             raise TypeError('driver_opts must be a dictionary')

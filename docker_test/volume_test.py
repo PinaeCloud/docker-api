@@ -2,12 +2,14 @@
 
 import unittest
 import json
+
 from docker import session
 from docker import volume
 
 from docker_test import base_test
 
 class VolumeTest(unittest.TestCase):
+    
     def setUp(self):
         self.c_session = session.get_session(base_test.session_url)
         self.v = volume.Volume(self.c_session)

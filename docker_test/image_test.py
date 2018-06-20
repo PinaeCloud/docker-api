@@ -2,6 +2,7 @@
 
 import unittest
 import json
+
 from docker import session
 from docker import image
 

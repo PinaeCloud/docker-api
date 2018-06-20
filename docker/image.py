@@ -5,7 +5,7 @@ import types
 
 from docker.utils import auth
 from docker.utils import decorators
-from text import string_utils as str_utils
+from docker.utils import string_utils
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class Image():
         return response
     
     def create_by_file(self, filename, repository = None, tag = None):
-        if str_utils.is_empty(filename):
+        if string_utils.is_empty(filename):
             raise ValueError('Filename is Empty')
         
         params = {'fromSrc' : '-', 'repo' : repository, 'tag' : tag}
@@ -88,7 +88,7 @@ class Image():
                            timeout=None))
         
     def create_by_url(self, url, repository = None, tag = None):
-        if str_utils.is_empty(url):
+        if string_utils.is_empty(url):
             raise ValueError('URL is Empty')
         
         params = {'fromSrc' : url, 'repo' : repository, 'tag' : tag}
@@ -99,7 +99,7 @@ class Image():
     
     @decorators.check_image
     def create_by_image(self, image_name, repository = None, tag = None):
-        if str_utils.is_empty(image_name):
+        if string_utils.is_empty(image_name):
             raise ValueError('Image name is Empty')
         
         params = {'fromImage' : image_name, 'repo' : repository, 'tag' : tag}
@@ -110,7 +110,7 @@ class Image():
     
     @decorators.check_image
     def remove(self, image_name, force = False, noprune = False):
-        if str_utils.is_empty(image_name):
+        if string_utils.is_empty(image_name):
             raise ValueError('Image name is Empty')
         
         params = {'force': force, 'noprune': noprune}
@@ -120,9 +120,9 @@ class Image():
         return response
     
     def pull(self, repository, tag, stream = False, auth_config = None):
-        if str_utils.is_empty(repository):
+        if string_utils.is_empty(repository):
             raise ValueError('Repository name is Empty')
-        if str_utils.is_empty(tag):
+        if string_utils.is_empty(tag):
             raise ValueError('Repository tag is Empty')
          
         registry, _ = auth.resolve_repository_name(repository)
@@ -140,7 +140,7 @@ class Image():
         return self.session._result(response)
     
     def push(self, repository, tag = None, stream = False, auth_config = None):
-        if str_utils.is_empty(repository):
+        if string_utils.is_empty(repository):
             raise ValueError('Repository name is Empty')
         
         registry, _ = auth.resolve_repository_name(repository)

@@ -2,8 +2,9 @@
 
 import os
 import codecs
-from text import string_utils
-from text import regex_utils
+
+import string_utils
+import regex_utils
 
 def read_file(filename, tail= 'all', encoding = 'utf-8', strip = False):
     if string_utils.is_blank(filename):
@@ -58,34 +59,6 @@ def list_dir(dir_path, file_filter = None):
         
     return file_list
     
-def split(filename, size, dir_path, ext_fn, encoding = 'utf-8'):
-    
-    name = os.path.basename(filename)
-    if string_utils.is_empty(name):
-        name = 'split'
-    
-    with codecs.open(filename, 'r', encoding) as f:
-        file_counter = 1
-        text = []
-        for line in f:
-            text.append(line)
-            if len(text) >= size:
-                write_file(dir_path + os.sep + name + '_' + str(file_counter) + '.' + ext_fn, text, encoding)
-                text = []
-                file_counter = file_counter + 1
-        if len(text) > 0:
-            write_file(dir_path + os.sep + name + '_' + str(file_counter) + '.' + ext_fn, text, encoding)
-    pass
-
-def join(filename, dir_path, file_filter = None, encoding = 'utf-8'):
-    file_list = list_dir(dir_path, file_filter)
-    
-    text = []
-    for file_path in file_list:
-        text.extend(read_file(file_path, encoding))
-        
-    write_file(filename, text, encoding)
-
 def size(filename):
     if string_utils.is_empty(filename):
         return 0

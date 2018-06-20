@@ -1,16 +1,15 @@
 # coding=utf-8
 
-import os
 import os.path
 import tarfile
 import tempfile
 
-from text import string_utils as str_utils
-from text import regex_utils as reg_utils
+import string_utils
+import regex_utils
 
 def tar(filelist, tar_path = None, exclude = None):
         
-    if str_utils.is_not_empty(tar_path):
+    if string_utils.is_not_empty(tar_path):
         t = tarfile.open(name = tar_path, mode = __get_tar_mode(tar_path))
     else: 
         fileobj = tempfile.NamedTemporaryFile()
@@ -26,7 +25,7 @@ def tar(filelist, tar_path = None, exclude = None):
                 for _file in files:
                     match = True
                     for pattern in exclude:
-                        if reg_utils.check_line(pattern, _file):
+                        if regex_utils.check_line(pattern, _file):
                             match = False
                             break
                     if match:
@@ -40,7 +39,7 @@ def tar(filelist, tar_path = None, exclude = None):
 
     t.close()
     
-    if str_utils.is_not_empty(tar_path):
+    if string_utils.is_not_empty(tar_path):
         return tar_path
     else:
         fileobj.seek(0)

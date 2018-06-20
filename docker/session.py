@@ -11,41 +11,32 @@ except ImportError:
     import urllib3
 
 import json
-import requests
 
-from text import text_file
-from text import string_utils as str_utils
-
-from docker import host
+from docker.utils import file_utils
+from docker.utils import string_utils
 
 RecentlyUsedContainer = urllib3._collections.RecentlyUsedContainer
 
-def get_session(docker_url, docker_path = None):
-    if docker_path == None:
-        docker_path = '/var/lib/docker'
-    return Session(docker_url, docker_path)
+def get_session(url):
+    return Session(url)
 
 class Session(requests.Session):
-    def __init__(self, docker_url = None, docker_path = None):
+    def __init__(self, url = None):
         super(Session, self).__init__()
         
-        if docker_url is None:
+        if url is None:
             raise 'Docker URL is None'
-        self.docker_url = docker_url
         
-        if docker_path is None:
-            raise 'Docker Path is None'
-        self.docker_path = docker_path
+        self.url = url
         
         self.timeout = 60
         
-        #set docker server url
-        if docker_url.startswith('unix://'):
-            unix_socket_adapter = UnixAdapter(docker_url, 60)
+        if url.startswith('unix://'):
+            unix_socket_adapter = UnixAdapter(url, 60)
             self.mount('http+unix://', unix_socket_adapter)
-            self.docker_url = 'http+unix://localhost'
+            self.url = 'http+unix://localhost'
         else:
-            self.docker_url = docker_url
+            self.url = url
         
     def _set_request_timeout(self, kwargs):
         """Prepare the kwargs for an HTTP request by inserting the timeout
@@ -91,33 +82,43 @@ class Session(requests.Session):
         return self.delete(url, **self._set_request_timeout(kwargs))
 
     def _url(self, path, versioned_api = True):
-        url = '{0}{1}'.format(self.docker_url, path)
+        url = '{0}{1}'.format(self.url, path)
         return url
 
-    def _result(self, response, stream = False):
+    def _result(self, response, stream = False, with_headers = False):
         result = {}
-        
-        result['status_code'] = response.status_code
-        
+
         headers = response.headers
         content_type = headers.get('content-type')
 
         if stream:
             return self._stream_raw_result(response)
         else:
-            if content_type == 'application/json':
-                try:
-                    result['content'] = response.json()
-                except ValueError:
-                    result['content-type'] = 'text/plain'
-                    result['content'] = response.text
-            elif content_type == 'application/octet-stream' or content_type == 'application/x-tar':
+            if 'application/json' in content_type:
+                result = self._to_json(response)
+            elif 'application/vnd.docker.distribution.manifest' in content_type:
+                result = self._to_json(response)
+            elif 'application/octet-stream' in content_type or 'application/x-tar' in content_type:
                 result = response
-            elif content_type == 'application/vnd.docker.raw-stream':
+            elif 'application/vnd.docker.raw-stream' in content_type:
                 result['content'] = response.content
             else:
                 result['content'] = response.text
-            
+        
+        if isinstance(result, dict):
+            result['status_code'] = response.status_code
+            result['content-type'] = content_type
+            if with_headers:
+                result['headers'] = headers
+        
+        return result
+    
+    def _to_json(self, response):
+        result = {}
+        try:
+            result['content'] = response.json()
+        except ValueError:
+            result['content'] = response.text
         return result
     
     def _stream_raw_result(self, response, chunk_size = 1):
@@ -144,14 +145,14 @@ class Session(requests.Session):
             yield self._result(response)
     
     def _read(self, path, tail=None):
-        if str_utils.is_empty(path):
+        if string_utils.is_empty(path):
             raise ValueError('Path is Empty')
         if path.startswith('/'):
             filename = self.docker_path + path
         else:
             filename = os.path.join(self.docker_path, path)
         if os.path.exists(filename):
-            result = text_file.read_file(filename, tail)
+            result = file_utils.read_file(filename, tail)
             return result
         else:
             raise IOError('File {0} not found'.format(filename))
@@ -159,13 +160,13 @@ class Session(requests.Session):
     def _get_docker_path(self):
         return self.docker_path
     
-    def _get_docker_url(self):
-        return self.docker_url
+    def _get_url(self):
+        return self.url
     
 class UnixHTTPConnection(httplib.HTTPConnection, object):
-    def __init__(self, docker_url, unix_socket, timeout = 60):
+    def __init__(self, url, unix_socket, timeout = 60):
         httplib.HTTPConnection.__init__(self, 'localhost', timeout=timeout)
-        self.docker_url = docker_url
+        self.url = url
         self.unix_socket = unix_socket
         self.timeout = timeout
 
@@ -177,16 +178,16 @@ class UnixHTTPConnection(httplib.HTTPConnection, object):
 
 
 class UnixHTTPConnectionPool(urllib3.connectionpool.HTTPConnectionPool):
-    def __init__(self, docker_url, socket_path, timeout = 60):
+    def __init__(self, url, socket_path, timeout = 60):
         urllib3.connectionpool.HTTPConnectionPool.__init__(
             self, 'localhost', timeout=timeout
             )
-        self.docker_url = docker_url
+        self.url = url
         self.socket_path = socket_path
         self.timeout = timeout
 
     def _new_conn(self):
-        return UnixHTTPConnection(self.docker_url, self.socket_path, self.timeout)
+        return UnixHTTPConnection(self.url, self.socket_path, self.timeout)
 
 
 class UnixAdapter(requests.adapters.HTTPAdapter):
